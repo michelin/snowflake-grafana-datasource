@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "Snowflake",
+  "id": "michelin-snowflake-datasource",
+  "category": "sql",
+  "metrics": true,
+  "backend": true,
+  "annotations": true,
+  "executable": "gpx_snowfake-datasource",
+  "info": {
+    "description": "Datasource for Snowflake",
+    "author": {
+      "name": "Manufacture Française des Pneumatiques Michelin",
+      "url": "https://blogit.michelin.io/"
+    },
+    "keywords": [
+      "snowflake"
+    ],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Website",
+        "url": "https://github.com/michelin/snowflake-grafana-datasource"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/michelin/snowflake-grafana-datasource/blob/master/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=7.0.0",
+    "plugins": []
+  }
+}
