@@ -1,5 +1,4 @@
-import { DataSourceWithBackend } from '@grafana/runtime';
-import { getTemplateSrv } from '@grafana/runtime';
+import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { SnowflakeQuery, SnowflakeOptions } from './types';
 

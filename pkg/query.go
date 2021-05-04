@@ -33,10 +33,11 @@ type queryConfigStruct struct {
 	FillValue     float64
 }
 
+// Constant used to describe the time series fill mode if no value has been seen
 const (
-	NULL_FILL     = "null"
-	PREVIOUS_FILL = "previous"
-	VALUE_FILL    = "value"
+	NullFill     = "null"
+	PreviousFill = "previous"
+	ValueFill    = "value"
 )
 
 type queryModel struct {
@@ -45,7 +46,7 @@ type queryModel struct {
 	TimeColumns []string `json:"timeColumns"`
 }
 
-func (query *queryConfigStruct) fetchData(config *pluginConfig, password string) (result DataQueryResult, err error) {
+func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string) (result DataQueryResult, err error) {
 
 	connectionString := getConnectionString(config, password)
 	db, err := sql.Open("snowflake", connectionString)
@@ -55,10 +56,10 @@ func (query *queryConfigStruct) fetchData(config *pluginConfig, password string)
 	}
 	defer db.Close()
 
-	log.DefaultLogger.Info("Query", "finalQuery", query.FinalQuery)
-	rows, err := db.Query(query.FinalQuery)
+	log.DefaultLogger.Info("Query", "finalQuery", qc.FinalQuery)
+	rows, err := db.Query(qc.FinalQuery)
 	if err != nil {
-		log.DefaultLogger.Error("Could not execute query", "query", query.FinalQuery, "err", err)
+		log.DefaultLogger.Error("Could not execute query", "query", qc.FinalQuery, "err", err)
 		return result, err
 	}
 	defer rows.Close()
@@ -84,7 +85,7 @@ func (query *queryConfigStruct) fetchData(config *pluginConfig, password string)
 		if rowCount > rowLimit {
 			return result, fmt.Errorf("query row limit exceeded, limit %d", rowLimit)
 		}
-		values, err := query.transformQueryResult(columnTypes, rows)
+		values, err := qc.transformQueryResult(columnTypes, rows)
 		if err != nil {
 			return result, err
 		}
@@ -287,11 +288,11 @@ func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, interva
 					continue
 				}
 				switch queryConfig.FillMode {
-				case VALUE_FILL:
+				case ValueFill:
 					frame.Fields[i].Append(&queryConfig.FillValue)
-				case NULL_FILL:
+				case NullFill:
 					frame.Fields[i].Append(nil)
-				case PREVIOUS_FILL:
+				case PreviousFill:
 					if previousRow == nil {
 						insertFrameField(frame, nil, i)
 					} else {

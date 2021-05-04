@@ -55,11 +55,11 @@ func Interpolate(configStruct *queryConfigStruct) (string, error) {
 func SetupFillmode(configStruct *queryConfigStruct, fillmode string) error {
 	switch fillmode {
 	case "NULL":
-		configStruct.FillMode = NULL_FILL
+		configStruct.FillMode = NullFill
 	case "previous":
-		configStruct.FillMode = PREVIOUS_FILL
+		configStruct.FillMode = PreviousFill
 	default:
-		configStruct.FillMode = VALUE_FILL
+		configStruct.FillMode = ValueFill
 		value, err := strconv.ParseFloat(fillmode, 64)
 		if err != nil {
 			return fmt.Errorf("error parsing fill value %v", fillmode)

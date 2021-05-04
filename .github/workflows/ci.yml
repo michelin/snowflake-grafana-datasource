@@ -72,4 +72,4 @@ jobs:
         uses: magefile/mage-action@v1
         with:
           version: latest
-          args: buildAll
+          args: -v build:linux build:linuxARM build:linuxARM64  build:windows build:darwin

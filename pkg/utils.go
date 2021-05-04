@@ -15,6 +15,7 @@ func equalsIgnoreCase(s []string, str string) bool {
 	return false
 }
 
+// Max return the maximum value between two int64
 func Max(x, y int64) int64 {
 	if x > y {
 		return x
@@ -22,6 +23,7 @@ func Max(x, y int64) int64 {
 	return y
 }
 
+// Min return the minimum value between two int64
 func Min(x, y int64) int64 {
 	if x < y {
 		return x
