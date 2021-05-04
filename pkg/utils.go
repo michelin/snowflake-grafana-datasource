@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-func containsIgnoreCase(s []string, str string) bool {
+func equalsIgnoreCase(s []string, str string) bool {
 	for _, v := range s {
-		if strings.ToUpper(v) == strings.ToUpper(str) {
+		if strings.EqualFold(v, str) {
 			return true
 		}
 	}

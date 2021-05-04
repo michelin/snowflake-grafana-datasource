@@ -1,10 +1,9 @@
 import { DataSourceWithBackend } from '@grafana/runtime';
 import { getTemplateSrv } from '@grafana/runtime';
-import {DataSourceInstanceSettings, ScopedVars} from '@grafana/data';
+import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { SnowflakeQuery, SnowflakeOptions } from './types';
 
 export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeOptions> {
-
   constructor(instanceSettings: DataSourceInstanceSettings<SnowflakeOptions>) {
     super(instanceSettings);
   }
@@ -15,8 +14,6 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
   }
 
   filterQuery(query: SnowflakeQuery): boolean {
-    return query.queryText != "" && !query.hide;
+    return query.queryText !== '' && !query.hide;
   }
-
-
 }

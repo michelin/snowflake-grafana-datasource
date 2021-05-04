@@ -15,40 +15,10 @@ import (
 // a datasource is working as expected.
 func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 
-	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-
-	if password == "" {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Password is not provided.",
-		}, nil
+	connectionString, result := createAndValidationConnectionString(req)
+	if result != nil {
+		return result, nil
 	}
-
-	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Error getting config: %s", err),
-		}, nil
-	}
-
-	if config.Account == "" {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Account not provided",
-		}, nil
-	}
-
-	if config.Username == "" {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Username not provided",
-		}, nil
-	}
-
-	config.ExtraConfig = config.ExtraConfig + "&validateDefaultParameters=true"
-
-	connectionString := getConnectionString(&config, password)
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
 		return &backend.CheckHealthResult{
@@ -72,4 +42,46 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 		Status:  backend.HealthStatusOk,
 		Message: "Data source is working",
 	}, nil
+}
+
+func createAndValidationConnectionString(req *backend.CheckHealthRequest) (string, *backend.CheckHealthResult) {
+	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+
+	if password == "" {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: "Password is not provided.",
+		}
+	}
+
+	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: fmt.Sprintf("Error getting config: %s", err),
+		}
+	}
+
+	if config.Account == "" {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: "Account not provided",
+		}
+	}
+
+	if config.Username == "" {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: "Username not provided",
+		}
+	}
+
+	if len(config.ExtraConfig) > 0 {
+		config.ExtraConfig = config.ExtraConfig + "&validateDefaultParameters=true"
+	} else {
+		config.ExtraConfig = "validateDefaultParameters=true"
+	}
+
+	connectionString := getConnectionString(&config, password)
+	return connectionString, nil
 }

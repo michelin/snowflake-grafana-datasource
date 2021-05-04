@@ -118,7 +118,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 		log.DefaultLogger.Debug("Type", fmt.Sprintf("%T %v ", values[i], values[i]), columnTypes[i].DatabaseTypeName())
 
 		// Convert time columns when query mode is time series
-		if qc.isTimeSeriesType() && containsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) {
+		if qc.isTimeSeriesType() && equalsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) {
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 				values[i] = time.Unix(int64(v), 0)
 			} else {
@@ -218,8 +218,8 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		timeColumnIndex := -1
 		for i, column := range table.Columns {
 			// Check time column
-			if queryConfig.isTimeSeriesType() && containsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
-				if strings.ToUpper(column.Name()) == strings.ToUpper("Time") {
+			if queryConfig.isTimeSeriesType() && equalsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
+				if strings.EqualFold(column.Name(), "Time") {
 					timeColumnIndex = i
 				}
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*time.Time{}))
@@ -289,17 +289,14 @@ func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, interva
 				switch queryConfig.FillMode {
 				case VALUE_FILL:
 					frame.Fields[i].Append(&queryConfig.FillValue)
-					break
 				case NULL_FILL:
 					frame.Fields[i].Append(nil)
-					break
 				case PREVIOUS_FILL:
 					if previousRow == nil {
 						insertFrameField(frame, nil, i)
 					} else {
 						insertFrameField(frame, previousRow[i], i)
 					}
-					break
 				default:
 				}
 			}

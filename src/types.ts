@@ -8,11 +8,11 @@ export interface SnowflakeQuery extends DataQuery {
 
 export const defaultQuery: Partial<SnowflakeQuery> = {
   queryText:
-      "SELECT $__timeGroup(timestamp,$__interval ,previous) as time, count(*) as nb \n" +
-      "FROM TABLE WHERE $__timeFilter(timestamp) \n" +
-      "GROUP BY time ORDER BY time",
+    'SELECT $__timeGroup(timestamp,$__interval ,previous) as time, count(*) as nb \n' +
+    'FROM TABLE WHERE $__timeFilter(timestamp) \n' +
+    'GROUP BY time ORDER BY time',
   queryType: 'table',
-  timeColumns: ['time']
+  timeColumns: ['time'],
 };
 
 /**

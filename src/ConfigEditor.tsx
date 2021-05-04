@@ -14,10 +14,10 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const { onOptionsChange, options } = this.props;
 
     var value;
-    if (event.target.value.includes(".snowflakecomputing.com")){
+    if (event.target.value.includes('.snowflakecomputing.com')) {
       value = event.target.value;
     } else {
-      value = event.target.value +".snowflakecomputing.com";
+      value = event.target.value + '.snowflakecomputing.com';
     }
 
     const jsonData = {

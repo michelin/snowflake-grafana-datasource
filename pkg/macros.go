@@ -70,6 +70,7 @@ func SetupFillmode(configStruct *queryConfigStruct, fillmode string) error {
 	return nil
 }
 
+// evaluateMacro convert macro expression to sql expression
 func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) (string, error) {
 	timeRange := configStruct.TimeRange
 	switch name {
@@ -77,7 +78,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) == 0 {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
-		return fmt.Sprintf("%s AS time", args[0]), nil
+		return fmt.Sprintf("TRY_TO_TIMESTAMP(%s) AS time", args[0]), nil
 	case "__timeEpoch":
 		if len(args) == 0 {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)

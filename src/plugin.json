@@ -7,6 +7,7 @@
   "metrics": true,
   "backend": true,
   "annotations": true,
+  "alerting": true,
   "executable": "gpx_snowfake-datasource",
   "info": {
     "description": "Datasource for Snowflake",
