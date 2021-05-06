@@ -11,6 +11,10 @@ With the Snowflake plugin, you can visualize your Snowflake data in Grafana and 
 
 1. Install the plugin into the grafana plugin folder:
 ```shell
+grafana-cli --pluginUrl https://github.com/michelin/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip plugins install michelin-snowflake-datasource
+```
+or
+```shell
 cd /var/lib/grafana/plugins/
 wget https://github.com/michelin/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip
 unzip snowflake-grafana-datasource.zip
