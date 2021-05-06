@@ -27,6 +27,15 @@ unzip snowflake-grafana-datasource.zip
 [plugins]
 allow_loading_unsigned_plugins = michelin-snowflake-datasource
 ```
+Or with docker
+```shell
+docker run -d \
+-p 3000:3000 \
+-v "$(pwd)"/grafana-plugins:/var/lib/grafana/plugins \
+--name=grafana \
+-e "GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=michelin-snowflake-datasource" \
+grafana/grafana
+```
 
 3. Restart grafana
 
