@@ -7,7 +7,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	_ "github.com/snowflakedb/gosnowflake"
+	sf "github.com/snowflakedb/gosnowflake"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +47,9 @@ type queryModel struct {
 }
 
 func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string) (result DataQueryResult, err error) {
+	// Custom configuration to reduce memory footprint
+	sf.MaxChunkDownloadWorkers = 2
+	sf.CustomJSONDecoderEnabled = true
 
 	connectionString := getConnectionString(config, password)
 	db, err := sql.Open("snowflake", connectionString)
