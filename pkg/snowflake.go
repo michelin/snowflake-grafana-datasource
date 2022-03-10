@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"net/http"
+	"net/url"
 )
 
 // newDatasource returns datasource.ServeOpts.
@@ -81,7 +82,7 @@ func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, erro
 }
 
 func getConnectionString(config *pluginConfig, password string) string {
-	return fmt.Sprintf("%s:%s@%s/%s/%s?warehouse=%s&role=%s&%s", config.Username, password, config.Account, config.Database, config.Schema, config.Warehouse, config.Role, config.ExtraConfig)
+	return fmt.Sprintf("%s:%s@%s/%s/%s?warehouse=%s&role=%s&%s", config.Username, url.PathEscape(password), config.Account, config.Database, config.Schema, config.Warehouse, config.Role, config.ExtraConfig)
 }
 
 type instanceSettings struct {
