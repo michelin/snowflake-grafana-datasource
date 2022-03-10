@@ -62,11 +62,11 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 				PluginContext: backend.PluginContext{
 					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
 						JSONData:                []byte("{\"account\":\"test\",\"username\":\"user\"}"),
-						DecryptedSecureJSONData: map[string]string{"password": "pass"},
+						DecryptedSecureJSONData: map[string]string{"password": "pass%"},
 					},
 				},
 			},
-			connectionString: "user:pass@test//?warehouse=&role=&validateDefaultParameters=true",
+			connectionString: "user:pass%25@test//?warehouse=&role=&validateDefaultParameters=true",
 		},
 		{
 			request: &backend.CheckHealthRequest{
