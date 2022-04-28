@@ -59,7 +59,6 @@ export class QueryEditor extends PureComponent<Props> {
         </div>
         <div className="gf-form">
           <TextArea
-            css={null}
             style={{ height: 100 }}
             role="query-editor-input"
             value={queryText || ''}

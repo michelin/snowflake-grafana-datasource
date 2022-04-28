@@ -1,9 +1,9 @@
 import React, { ChangeEvent, PureComponent } from 'react';
 import { LegacyForms } from '@grafana/ui';
-import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
+import { DataSourcePluginOptionsEditorProps} from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
 
-const { SecretFormField, FormField } = LegacyForms;
+const { SecretFormField, FormField, Switch } = LegacyForms;
 
 interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> {}
 
@@ -19,6 +19,10 @@ export class ConfigEditor extends PureComponent<Props, State> {
     } else {
       value = event.target.value + '.snowflakecomputing.com';
     }
+
+    // Sanitize value to avoid error
+    const regex = new RegExp('https?://');
+    value = value.replace(regex, '');
 
     const jsonData = {
       ...options.jsonData,
@@ -72,6 +76,15 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({ ...options, jsonData });
   };
 
+  onAuthenticationChange = (event: React.SyntheticEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      basicAuth: (event.target as HTMLInputElement).checked,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
   onSchemaChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     const jsonData = {
@@ -88,6 +101,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
       ...options,
       secureJsonData: {
         password: event.target.value,
+        privateKey: '',
       },
     });
   };
@@ -103,6 +117,32 @@ export class ConfigEditor extends PureComponent<Props, State> {
       secureJsonData: {
         ...options.secureJsonData,
         password: '',
+      },
+    });
+  };
+
+  onPrivateKeyChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      secureJsonData: {
+        privateKey: event.target.value,
+        password: '',
+      },
+    });
+  };
+
+  onResetPrivateKey = () => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      secureJsonFields: {
+        ...options.secureJsonFields,
+        privateKey: false,
+      },
+      secureJsonData: {
+        ...options.secureJsonData,
+        privateKey: '',
       },
     });
   };
@@ -139,17 +179,37 @@ export class ConfigEditor extends PureComponent<Props, State> {
           />
         </div>
 
-        <div className="gf-form-inline">
-          <SecretFormField
-            isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
-            value={secureJsonData.password || ''}
-            label="Password"
-            placeholder="password"
-            labelWidth={10}
-            inputWidth={20}
-            onReset={this.onResetPassword}
-            onChange={this.onPasswordChange}
-          />
+        <div className="gf-form">
+          <Switch label="basic or key pair authentication"
+                  checked={jsonData.basicAuth}
+                  onChange={this.onAuthenticationChange} />
+        </div>
+        <div className="gf-form">
+        { !jsonData.basicAuth &&
+              <SecretFormField
+                  isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
+                  value={secureJsonData.password || ''}
+                  label="Password"
+                  placeholder="password"
+                  labelWidth={10}
+                  inputWidth={20}
+                  onReset={this.onResetPassword}
+                  onChange={this.onPasswordChange}
+              />
+        }
+        { jsonData.basicAuth &&
+              <SecretFormField
+                  isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
+                  value={secureJsonData.privateKey || ''}
+                  tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
+                  label="Private key"
+                  placeholder="MIIB..."
+                  labelWidth={10}
+                  inputWidth={20}
+                  onReset={this.onResetPrivateKey}
+                  onChange={this.onPrivateKeyChange}
+              />
+        }
         </div>
 
         <div className="gf-form">

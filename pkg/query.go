@@ -46,12 +46,12 @@ type queryModel struct {
 	TimeColumns []string `json:"timeColumns"`
 }
 
-func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string) (result DataQueryResult, err error) {
+func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
 	// Custom configuration to reduce memory footprint
 	sf.MaxChunkDownloadWorkers = 2
 	sf.CustomJSONDecoderEnabled = true
 
-	connectionString := getConnectionString(config, password)
+	connectionString := getConnectionString(config, password, privateKey)
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
 		log.DefaultLogger.Error("Could not open database", "err", err)
@@ -169,7 +169,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginConfig, password string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
@@ -211,7 +211,7 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 	frame := data.NewFrame("response")
 	frame.Meta = &data.FrameMeta{ExecutedQueryString: queryConfig.FinalQuery}
 
-	dataResponse, err := queryConfig.fetchData(&config, password)
+	dataResponse, err := queryConfig.fetchData(&config, password, privateKey)
 	if err != nil {
 		response.Error = err
 		return response

@@ -26,6 +26,7 @@ export interface SnowflakeOptions extends DataSourceJsonData {
   database?: string;
   schema?: string;
   extraConfig?: string;
+  basicAuth: boolean;
 }
 
 /**
@@ -33,4 +34,5 @@ export interface SnowflakeOptions extends DataSourceJsonData {
  */
 export interface SnowflakeSecureOptions {
   password?: string;
+  privateKey?: string;
 }

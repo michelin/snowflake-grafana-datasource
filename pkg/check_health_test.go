@@ -22,7 +22,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Password is not provided."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Password or private key are required."},
 		},
 		{
 			request: &backend.CheckHealthRequest{
@@ -66,7 +66,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			connectionString: "user:pass@test//?warehouse=&role=&validateDefaultParameters=true",
+			connectionString: "user:pass@test?database=&role=&schema=&warehouse=&validateDefaultParameters=true",
 		},
 		{
 			request: &backend.CheckHealthRequest{
@@ -77,7 +77,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			connectionString: "user:pass@test//?warehouse=&role=&config=conf&validateDefaultParameters=true",
+			connectionString: "user:pass@test?database=&role=&schema=&warehouse=&config=conf&validateDefaultParameters=true",
 		},
 	}
 	for i, tc := range tcs {
