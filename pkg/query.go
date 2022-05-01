@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	sf "github.com/snowflakedb/gosnowflake"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,13 @@ type queryConfigStruct struct {
 	FillMode      string
 	FillValue     float64
 }
+
+// type
+var boolean bool
+var tim time.Time
+var float float64
+var str string
+var integer int64
 
 // Constant used to describe the time series fill mode if no value has been seen
 const (
@@ -117,6 +125,8 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 		return nil, err
 	}
 
+	column_types, _ := rows.ColumnTypes()
+
 	// convert types from string type to real type
 	for i := 0; i < len(columnTypes); i++ {
 		log.DefaultLogger.Debug("Type", fmt.Sprintf("%T %v ", values[i], values[i]), columnTypes[i].DatabaseTypeName())
@@ -131,31 +141,28 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 			continue
 		}
 
-		switch columnTypes[i].DatabaseTypeName() {
-		case "BOOLEAN":
+		switch column_types[i].ScanType() {
+		case reflect.TypeOf(boolean):
 			if v, err := strconv.ParseBool(values[i].(string)); err == nil {
 				values[i] = v
 			} else {
 				log.DefaultLogger.Info("Rows", "Error converting string to bool", values[i])
 			}
-		case "TIMESTAMP_LTZ", "TIMESTAMP_NTZ", "TIMESTAMP_TZ", "DATE", "TIME":
+		case reflect.TypeOf(tim):
 			values[i] = values[i].(time.Time)
-		case "FIXED":
-			precision, _, _ := columnTypes[i].DecimalSize()
-			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil && precision > 1 {
-				values[i] = v
-			} else if v, err := strconv.ParseInt(values[i].(string), 10, 64); err == nil {
+		case reflect.TypeOf(integer):
+			if v, err := strconv.ParseInt(values[i].(string), 10, 64); err == nil {
 				values[i] = v
 			} else {
 				log.DefaultLogger.Info("Rows", "Error converting string to int64", values[i])
 			}
-		case "REAL":
+		case reflect.TypeOf(float):
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 				values[i] = v
 			} else {
 				log.DefaultLogger.Info("Rows", "Error converting string to float64", values[i])
 			}
-		case "TEXT":
+		case reflect.TypeOf(str):
 			if values[i] != nil {
 				values[i] = values[i].(string)
 			}
@@ -229,21 +236,16 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*time.Time{}))
 				continue
 			}
-			switch column.DatabaseTypeName() {
-			case "BOOLEAN":
+			switch column.ScanType() {
+			case reflect.TypeOf(boolean):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*bool{}))
-			case "TIMESTAMP_LTZ", "TIMESTAMP_NTZ", "TIMESTAMP_TZ", "DATE", "TIME":
+			case reflect.TypeOf(tim):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*time.Time{}))
-			case "FIXED":
-				precision, _, _ := column.DecimalSize()
-				if precision > 1 {
-					frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*float64{}))
-				} else {
-					frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*int64{}))
-				}
-			case "REAL":
+			case reflect.TypeOf(integer):
+				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*int64{}))
+			case reflect.TypeOf(float):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*float64{}))
-			case "TEXT":
+			case reflect.TypeOf(str):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*string{}))
 			default:
 				log.DefaultLogger.Error("Rows", "Unknown database type", column.DatabaseTypeName())
