@@ -1,6 +1,6 @@
 import React, { ChangeEvent, PureComponent } from 'react';
 import { LegacyForms } from '@grafana/ui';
-import { DataSourcePluginOptionsEditorProps} from '@grafana/data';
+import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
 
 const { SecretFormField, FormField, Switch } = LegacyForms;
@@ -180,38 +180,39 @@ export class ConfigEditor extends PureComponent<Props, State> {
         </div>
 
         <div className="gf-form">
-          <Switch label="basic or key pair authentication"
-                  checked={jsonData.basicAuth}
-                  onChange={this.onAuthenticationChange} />
+          <Switch
+            label="basic or key pair authentication"
+            checked={jsonData.basicAuth}
+            onChange={this.onAuthenticationChange}
+          />
         </div>
         <div className="gf-form">
-        { !jsonData.basicAuth &&
-              <SecretFormField
-                  isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
-                  value={secureJsonData.password || ''}
-                  label="Password"
-                  placeholder="password"
-                  labelWidth={10}
-                  inputWidth={20}
-                  onReset={this.onResetPassword}
-                  onChange={this.onPasswordChange}
-              />
-        }
-        { jsonData.basicAuth &&
-              <SecretFormField
-                  isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
-                  value={secureJsonData.privateKey || ''}
-                  tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
-                  label="Private key"
-                  placeholder="MIIB..."
-                  labelWidth={10}
-                  inputWidth={20}
-                  onReset={this.onResetPrivateKey}
-                  onChange={this.onPrivateKeyChange}
-              />
-        }
+          {!jsonData.basicAuth && (
+            <SecretFormField
+              isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
+              value={secureJsonData.password || ''}
+              label="Password"
+              placeholder="password"
+              labelWidth={10}
+              inputWidth={20}
+              onReset={this.onResetPassword}
+              onChange={this.onPasswordChange}
+            />
+          )}
+          {jsonData.basicAuth && (
+            <SecretFormField
+              isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
+              value={secureJsonData.privateKey || ''}
+              tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
+              label="Private key"
+              placeholder="MIIB..."
+              labelWidth={10}
+              inputWidth={20}
+              onReset={this.onResetPrivateKey}
+              onChange={this.onPrivateKeyChange}
+            />
+          )}
         </div>
-
         <div className="gf-form">
           <FormField
             label="Role"
