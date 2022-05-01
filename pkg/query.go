@@ -210,8 +210,8 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		return response
 	}
 
-	// Add max Datapoint LIMIT option
-	if queryConfig.MaxDataPoints > 0 {
+	// Add max Datapoint LIMIT option for time series
+	if queryConfig.MaxDataPoints > 0 && queryConfig.isTimeSeriesType() && strings.Contains(queryConfig.FinalQuery, "LIMIT ") {
 		queryConfig.FinalQuery = fmt.Sprintf("%s LIMIT %d", queryConfig.FinalQuery, queryConfig.MaxDataPoints)
 	}
 
