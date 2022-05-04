@@ -48,8 +48,33 @@ func TestGetConnectionString(t *testing.T) {
 		ExtraConfig: "conf=xxx",
 	}
 
-	t.Run("testcase", func(t *testing.T) {
-		connectionString := getConnectionString(&config, "password")
-		require.Equal(t, "username:password@account/database/schema?warehouse=warehouse&role=role&conf=xxx", connectionString)
+	t.Run("with User/pass", func(t *testing.T) {
+		connectionString := getConnectionString(&config, "password", "")
+		require.Equal(t, "username:password@account?database=database&role=role&schema=schema&warehouse=warehouse&conf=xxx", connectionString)
+	})
+
+	t.Run("with private key", func(t *testing.T) {
+		connectionString := getConnectionString(&config, "", "privateKey")
+		require.Equal(t, "username@account?authenticator=SNOWFLAKE_JWT&database=database&privateKey=privateKey&role=role&schema=schema&warehouse=warehouse&conf=xxx", connectionString)
+	})
+
+	t.Run("with User/pass special char", func(t *testing.T) {
+		connectionString := getConnectionString(&config, "p@sswor/d", "")
+		require.Equal(t, "username:p%40sswor%2Fd@account?database=database&role=role&schema=schema&warehouse=warehouse&conf=xxx", connectionString)
+	})
+
+	config = pluginConfig{
+		Account:     "acc@ount",
+		Database:    "dat@base",
+		Role:        "ro@le",
+		Schema:      "sch@ema",
+		Username:    "user@name",
+		Warehouse:   "ware@house",
+		ExtraConfig: "conf=xxx",
+	}
+
+	t.Run("with string to escape", func(t *testing.T) {
+		connectionString := getConnectionString(&config, "pa$$s&", "")
+		require.Equal(t, "user%40name:pa$$s&@acc@ount?database=dat%40base&role=ro%40le&schema=sch%40ema&warehouse=ware%40house&conf=xxx", connectionString)
 	})
 }

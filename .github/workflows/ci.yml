@@ -58,7 +58,7 @@ jobs:
         if: steps.check-for-backend.outputs.has-backend == 'true'
         uses: actions/setup-go@v2
         with:
-          go-version: "1.15"
+          go-version: "1.18"
 
       - name: Test backend
         if: steps.check-for-backend.outputs.has-backend == 'true'

@@ -26,8 +26,6 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
       targets: [
         {
           queryText: queryText,
-          queryType: 'table',
-          timeColumns: ['time'],
           refId: 'search',
         },
       ],
@@ -37,6 +35,7 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
         switchMap((response) => {
           if (response.error) {
             console.log('Error: ' + response.error.message);
+            throw new Error(response.error.message);
           }
           return response.data;
         }),

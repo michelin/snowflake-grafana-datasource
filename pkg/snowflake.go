@@ -9,6 +9,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"net/http"
+	"net/url"
 )
 
 // newDatasource returns datasource.ServeOpts.
@@ -44,6 +45,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	response := backend.NewQueryDataResponse()
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
 
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
@@ -55,7 +57,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(q, config, password)
+		response.Responses[q.RefID] = td.query(q, config, password, privateKey)
 	}
 
 	return response, nil
@@ -80,8 +82,23 @@ func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, erro
 	return config, nil
 }
 
-func getConnectionString(config *pluginConfig, password string) string {
-	return fmt.Sprintf("%s:%s@%s/%s/%s?warehouse=%s&role=%s&%s", config.Username, password, config.Account, config.Database, config.Schema, config.Warehouse, config.Role, config.ExtraConfig)
+func getConnectionString(config *pluginConfig, password string, privateKey string) string {
+	params := url.Values{}
+	params.Add("role", config.Role)
+	params.Add("warehouse", config.Warehouse)
+	params.Add("database", config.Database)
+	params.Add("schema", config.Schema)
+
+	var userPass = ""
+	if len(privateKey) != 0 {
+		params.Add("authenticator", "SNOWFLAKE_JWT")
+		params.Add("privateKey", privateKey)
+		userPass = url.User(config.Username).String()
+	} else {
+		userPass = url.UserPassword(config.Username, password).String()
+	}
+
+	return fmt.Sprintf("%s@%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }
 
 type instanceSettings struct {

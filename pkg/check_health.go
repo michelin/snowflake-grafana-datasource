@@ -46,11 +46,12 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 
 func createAndValidationConnectionString(req *backend.CheckHealthRequest) (string, *backend.CheckHealthResult) {
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
 
-	if password == "" {
+	if password == "" && privateKey == "" {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
-			Message: "Password is not provided.",
+			Message: "Password or private key are required.",
 		}
 	}
 
@@ -82,6 +83,6 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		config.ExtraConfig = "validateDefaultParameters=true"
 	}
 
-	connectionString := getConnectionString(&config, password)
+	connectionString := getConnectionString(&config, password, privateKey)
 	return connectionString, nil
 }

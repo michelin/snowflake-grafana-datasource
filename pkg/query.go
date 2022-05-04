@@ -7,7 +7,9 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	_ "github.com/snowflakedb/gosnowflake"
+	sf "github.com/snowflakedb/gosnowflake"
+	"math/big"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +35,13 @@ type queryConfigStruct struct {
 	FillValue     float64
 }
 
+// type
+var boolean bool
+var tim time.Time
+var float float64
+var str string
+var integer int64
+
 // Constant used to describe the time series fill mode if no value has been seen
 const (
 	NullFill     = "null"
@@ -46,9 +55,12 @@ type queryModel struct {
 	TimeColumns []string `json:"timeColumns"`
 }
 
-func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string) (result DataQueryResult, err error) {
+func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
+	// Custom configuration to reduce memory footprint
+	sf.MaxChunkDownloadWorkers = 2
+	sf.CustomJSONDecoderEnabled = true
 
-	connectionString := getConnectionString(config, password)
+	connectionString := getConnectionString(config, password, privateKey)
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
 		log.DefaultLogger.Error("Could not open database", "err", err)
@@ -114,6 +126,8 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 		return nil, err
 	}
 
+	column_types, _ := rows.ColumnTypes()
+
 	// convert types from string type to real type
 	for i := 0; i < len(columnTypes); i++ {
 		log.DefaultLogger.Debug("Type", fmt.Sprintf("%T %v ", values[i], values[i]), columnTypes[i].DatabaseTypeName())
@@ -128,31 +142,27 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 			continue
 		}
 
-		switch columnTypes[i].DatabaseTypeName() {
-		case "BOOLEAN":
-			if v, err := strconv.ParseBool(values[i].(string)); err == nil {
-				values[i] = v
-			} else {
-				log.DefaultLogger.Info("Rows", "Error converting string to bool", values[i])
-			}
-		case "TIMESTAMP_LTZ", "TIMESTAMP_NTZ", "TIMESTAMP_TZ", "DATE", "TIME":
+		switch column_types[i].ScanType() {
+		case reflect.TypeOf(boolean):
+			values[i] = values[i].(bool)
+		case reflect.TypeOf(tim):
 			values[i] = values[i].(time.Time)
-		case "FIXED":
+		case reflect.TypeOf(integer):
+			n := new(big.Float)
+			n.SetString(values[i].(string))
 			precision, _, _ := columnTypes[i].DecimalSize()
-			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil && precision > 1 {
-				values[i] = v
-			} else if v, err := strconv.ParseInt(values[i].(string), 10, 64); err == nil {
-				values[i] = v
+			if precision > 1 {
+				values[i], _ = n.Float64()
 			} else {
-				log.DefaultLogger.Info("Rows", "Error converting string to int64", values[i])
+				values[i], _ = n.Int64()
 			}
-		case "REAL":
+		case reflect.TypeOf(float):
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 				values[i] = v
 			} else {
 				log.DefaultLogger.Info("Rows", "Error converting string to float64", values[i])
 			}
-		case "TEXT":
+		case reflect.TypeOf(str):
 			if values[i] != nil {
 				values[i] = values[i].(string)
 			}
@@ -166,7 +176,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginConfig, password string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
@@ -200,15 +210,15 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		return response
 	}
 
-	// Add max Datapoint LIMIT option
-	if queryConfig.MaxDataPoints > 0 {
+	// Add max Datapoint LIMIT option for time series
+	if queryConfig.MaxDataPoints > 0 && queryConfig.isTimeSeriesType() && strings.Contains(queryConfig.FinalQuery, "LIMIT ") {
 		queryConfig.FinalQuery = fmt.Sprintf("%s LIMIT %d", queryConfig.FinalQuery, queryConfig.MaxDataPoints)
 	}
 
 	frame := data.NewFrame("response")
 	frame.Meta = &data.FrameMeta{ExecutedQueryString: queryConfig.FinalQuery}
 
-	dataResponse, err := queryConfig.fetchData(&config, password)
+	dataResponse, err := queryConfig.fetchData(&config, password, privateKey)
 	if err != nil {
 		response.Error = err
 		return response
@@ -226,21 +236,21 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*time.Time{}))
 				continue
 			}
-			switch column.DatabaseTypeName() {
-			case "BOOLEAN":
+			switch column.ScanType() {
+			case reflect.TypeOf(boolean):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*bool{}))
-			case "TIMESTAMP_LTZ", "TIMESTAMP_NTZ", "TIMESTAMP_TZ", "DATE", "TIME":
+			case reflect.TypeOf(tim):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*time.Time{}))
-			case "FIXED":
+			case reflect.TypeOf(integer):
 				precision, _, _ := column.DecimalSize()
 				if precision > 1 {
 					frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*float64{}))
 				} else {
 					frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*int64{}))
 				}
-			case "REAL":
+			case reflect.TypeOf(float):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*float64{}))
-			case "TEXT":
+			case reflect.TypeOf(str):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*string{}))
 			default:
 				log.DefaultLogger.Error("Rows", "Unknown database type", column.DatabaseTypeName())
