@@ -143,11 +143,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 
 		switch column_types[i].ScanType() {
 		case reflect.TypeOf(boolean):
-			if v, err := strconv.ParseBool(values[i].(string)); err == nil {
-				values[i] = v
-			} else {
-				log.DefaultLogger.Info("Rows", "Error converting string to bool", values[i])
-			}
+			values[i] = values[i].(bool)
 		case reflect.TypeOf(tim):
 			values[i] = values[i].(time.Time)
 		case reflect.TypeOf(integer):
