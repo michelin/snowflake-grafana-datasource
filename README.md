@@ -52,11 +52,12 @@ Add your authentication and [configuration details](https://docs.snowflake.com/e
 
 Available configuration fields are as follows:
 
- Name                     | Description      
+ Name                     | Description
 ------------------------- | ------------
  Account Name             | Specifies the full name of your account (provided by Snowflake) 
  Username                 | Specifies the login name of the user for the connection.
  Password                 | Specifies the password for the specified user.
+ Private key              | Specifies the the private key. Must be encoded in base 64 URL encoded pkcs8.<br/>**Command :**<br/> `egrep -v '^(-----BEGIN PRIVATE KEY\|-----END PRIVATE KEY)' rsa_key.p8 \| tr -d '\n' \| sed 's/+/-/g; s/\//_/g' > rsa_key_urlbase64.p8`
  Role (Optional)          | Specifies the default access control role to use in the Snowflake session initiated by Grafana.
  Warehouse (Optional)     | Specifies the virtual warehouse to use once connected. 
  Database (Optional)      | Specifies the default database to use once connected. 
@@ -180,4 +181,4 @@ The snowflake datasource is a data source backend plugin composed of both fronte
    
 ## License
 
-Snowflake grafana plugin has been released under Apache License 2.0. Please, refer to the LICENSE file for further information.
+Snowflake grafana plugin has been released under Apache License 2.0. Please, refer to the LICENSE.txt file for further information.

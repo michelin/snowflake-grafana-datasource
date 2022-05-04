@@ -8,6 +8,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	sf "github.com/snowflakedb/gosnowflake"
+	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
@@ -147,10 +148,13 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 		case reflect.TypeOf(tim):
 			values[i] = values[i].(time.Time)
 		case reflect.TypeOf(integer):
-			if v, err := strconv.ParseInt(values[i].(string), 10, 64); err == nil {
-				values[i] = v
+			n := new(big.Float)
+			n.SetString(values[i].(string))
+			precision, _, _ := columnTypes[i].DecimalSize()
+			if precision > 1 {
+				values[i], _ = n.Float64()
 			} else {
-				log.DefaultLogger.Info("Rows", "Error converting string to int64", values[i])
+				values[i], _ = n.Int64()
 			}
 		case reflect.TypeOf(float):
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
@@ -238,7 +242,12 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 			case reflect.TypeOf(tim):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*time.Time{}))
 			case reflect.TypeOf(integer):
-				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*int64{}))
+				precision, _, _ := column.DecimalSize()
+				if precision > 1 {
+					frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*float64{}))
+				} else {
+					frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*int64{}))
+				}
 			case reflect.TypeOf(float):
 				frame.Fields = append(frame.Fields, data.NewField(column.Name(), nil, []*float64{}))
 			case reflect.TypeOf(str):
