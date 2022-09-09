@@ -6,6 +6,7 @@ import { switchMap, map } from 'rxjs/operators';
 export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<SnowflakeOptions>) {
     super(instanceSettings);
+    this.annotations = {};
   }
 
   applyTemplateVariables(query: SnowflakeQuery, scopedVars: ScopedVars): SnowflakeQuery {
