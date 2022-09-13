@@ -2,6 +2,7 @@ import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
 import { DataQueryRequest, DataFrame, MetricFindValue, DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { SnowflakeQuery, SnowflakeOptions } from './types';
 import { switchMap, map } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 
 export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<SnowflakeOptions>) {
@@ -23,7 +24,7 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
       return Promise.resolve([]);
     }
 
-    return this.query({
+    return firstValueFrom(this.query({
       targets: [
         {
           queryText: queryText,
@@ -48,7 +49,6 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
             return { text: value };
           })
         )
-      )
-      .toPromise();
+      ));
   }
 }
