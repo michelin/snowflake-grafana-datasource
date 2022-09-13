@@ -16,7 +16,8 @@
       "url": "https://blogit.michelin.io/"
     },
     "keywords": [
-      "snowflake"
+      "snowflake",
+      "datasource"
     ],
     "logos": {
       "small": "img/logo.svg",
@@ -29,7 +30,7 @@
       },
       {
         "name": "License",
-        "url": "https://github.com/michelin/snowflake-grafana-datasource/blob/master/LICENSE"
+        "url": "https://github.com/michelin/snowflake-grafana-datasource/blob/master/LICENSE.txt"
       }
     ],
     "screenshots": [],
