@@ -1,6 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+- Fix issue with Time Formatted Columns
+- Improve metadata in response
+- Add query refId in response
+- Upgrade grafana-plugin-sdk-go to version v0.139.0.
+- Upgrade gosnowflake to version v1.6.13.
 
 ## 1.1.0
 

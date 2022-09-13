@@ -133,7 +133,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 		log.DefaultLogger.Debug("Type", fmt.Sprintf("%T %v ", values[i], values[i]), columnTypes[i].DatabaseTypeName())
 
 		// Convert time columns when query mode is time series
-		if qc.isTimeSeriesType() && equalsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) {
+		if qc.isTimeSeriesType() && equalsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) && reflect.TypeOf(values[i]) == reflect.TypeOf(str) {
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 				values[i] = time.Unix(int64(v), 0)
 			} else {
@@ -215,8 +215,7 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		queryConfig.FinalQuery = fmt.Sprintf("%s LIMIT %d", queryConfig.FinalQuery, queryConfig.MaxDataPoints)
 	}
 
-	frame := data.NewFrame("response")
-	frame.Meta = &data.FrameMeta{ExecutedQueryString: queryConfig.FinalQuery}
+	frame := data.NewFrame("")
 
 	dataResponse, err := queryConfig.fetchData(&config, password, privateKey)
 	if err != nil {
@@ -228,6 +227,9 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 	for _, table := range dataResponse.Tables {
 		timeColumnIndex := -1
 		for i, column := range table.Columns {
+			if err != nil {
+				return backend.DataResponse{}
+			}
 			// Check time column
 			if queryConfig.isTimeSeriesType() && equalsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
 				if strings.EqualFold(column.Name(), "Time") {
@@ -277,10 +279,10 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, len(table.Rows)))
 	}
 
+	frame.RefID = dataQuery.RefID
 	frame.Meta = &data.FrameMeta{
-		Custom: map[string]interface{}{
-			"rowCount": len(dataResponse.Tables),
-		},
+		Type:                data.FrameTypeTimeSeriesWide,
+		ExecutedQueryString: queryConfig.FinalQuery,
 	}
 
 	response.Frames = append(response.Frames, frame)
