@@ -4,15 +4,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github.com/grafana/grafana-plugin-sdk-go/data"
-	sf "github.com/snowflakedb/gosnowflake"
 	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
+	sf "github.com/snowflakedb/gosnowflake"
 )
 
 const rowLimit = 10000
@@ -137,7 +138,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 				values[i] = time.Unix(int64(v), 0)
 			} else {
-				return nil, fmt.Errorf("Column %s cannot be converted to Time", columnTypes[i].Name())
+				return nil, fmt.Errorf("column %s cannot be converted to Time", columnTypes[i].Name())
 			}
 			continue
 		}
@@ -278,7 +279,16 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		}
 		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, len(table.Rows)))
 	}
-
+	if queryConfig.isTimeSeriesType() {
+		tsSchema := frame.TimeSeriesSchema()
+		if tsSchema.Type == data.TimeSeriesTypeLong {
+			fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
+			frame, err = data.LongToWide(frame, fillMode)
+			if err != nil {
+				log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
+			}
+		}
+	}
 	frame.RefID = dataQuery.RefID
 	frame.Meta = &data.FrameMeta{
 		Type:                data.FrameTypeTimeSeriesWide,
@@ -288,6 +298,21 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 	response.Frames = append(response.Frames, frame)
 
 	return response
+}
+
+func mapFillMode(fillModeString string) data.FillMode {
+	var fillMode data.FillMode
+	switch fillModeString {
+	case ValueFill:
+		fillMode = data.FillModeValue
+	case NullFill:
+		fillMode = data.FillModeNull
+	case PreviousFill:
+		fillMode = data.FillModePrevious
+	default:
+		// no-op
+	}
+	return fillMode
 }
 
 func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, intervalEnd int64, timeColumnIndex int, frame *data.Frame, columnSize int, count *int, previousRow []interface{}) {

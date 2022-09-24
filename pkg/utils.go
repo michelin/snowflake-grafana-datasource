@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"strings"
 	"time"
+
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
 func equalsIgnoreCase(s []string, str string) bool {
