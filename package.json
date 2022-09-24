@@ -1,6 +1,6 @@
 {
   "name": "michelin-snowflake-datasource",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Data source for Snowflake",
   "scripts": {
     "build": "grafana-toolkit plugin:build",
