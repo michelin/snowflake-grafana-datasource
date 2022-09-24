@@ -88,8 +88,12 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) == 0 {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
-
-		return fmt.Sprintf("%s BETWEEN '%s' AND '%s'", args[0], timeRange.From.UTC().Format(time.RFC3339Nano), timeRange.To.UTC().Format(time.RFC3339Nano)), nil
+		column := args[0]
+		timezone := "'UTC'"
+		if len(args) > 1 {
+			timezone = args[1]
+		}
+		return fmt.Sprintf("CONVERT_TIMEZONE('UTC', %s, %s) > '%s' AND CONVERT_TIMEZONE('UTC', %s, %s) < '%s'", timezone, column, timeRange.From.UTC().Format(time.RFC3339Nano), timezone, column, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeFrom":
 		return fmt.Sprintf("'%s'", timeRange.From.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeTo":
@@ -109,11 +113,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 			}
 		}
 
-		return fmt.Sprintf(
-			"floor(extract(epoch from %s)/%v)*%v", args[0],
-			interval.Seconds(),
-			interval.Seconds(),
-		), nil
+		return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP(%s), %v, 'SECOND', 'START')", args[0], interval.Seconds()), nil
 	case "__timeGroupAlias":
 		tg, err := evaluateMacro("__timeGroup", args, configStruct)
 		if err == nil {

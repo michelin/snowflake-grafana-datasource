@@ -72,7 +72,8 @@ Macro example                                          | Description
 ------------------------------------------------------ | -------------
 `$__time(dateColumn)`                                  | Will be replaced by an expression to convert to a UNIX timestamp and rename the column to `time`. For example, *TRY_TO_TIMESTAMP(dateColumn) as time*
 `$__timeEpoch(dateColumn)`                             | Will be replaced by an expression to convert to a UNIX timestamp and rename the column to `time`.
-`$__timeFilter(dateColumn)`                            | Will be replaced by a time range filter using the specified column name. For example, *dateColumn BETWEEN 1494410783 AND 1494410983*
+`$__timeFilter(dateColumn)`                            | Will be replaced by a time range filter using the specified column name. For example, *CONVERT_TIMEZONE('UTC', 'UTC', time) < '2022-09-24T12:13:14Z' AND CONVERT_TIMEZONE('UTC', 'UTC', time) > '2022-09-25T12:13:14Z*
+`$__timeFilter(dateColumn, timezone)`                  | Will be replaced by a time range filter using the specified column name. For example, *CONVERT_TIMEZONE('UTC', 'America/New_York', time) < '2022-09-24T12:13:14Z' AND CONVERT_TIMEZONE('UTC', 'America/New_York', time) > '2022-09-25T12:13:14Z*
 `$__timeFrom()`                                        | Will be replaced by the start of the currently active time selection. For example, *1494410783*
 `$__timeTo()`                                          | Will be replaced by the end of the currently active time selection. For example, *1494410983*
 `$__timeGroup(dateColumn,'5m')`                        | Will be replaced by an expression usable in GROUP BY clause. For example, *floor(extract(epoch from dateColumn)/120)*120*
