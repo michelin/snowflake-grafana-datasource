@@ -43,7 +43,6 @@ var float float64
 var str string
 var integer int64
 
-
 // Constant used to describe the time series fill mode if no value has been seen
 const (
 	NullFill     = "null"
@@ -212,13 +211,12 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		return response
 	}
 
-	frame := data.NewFrame("")
-
 	// Add max Datapoint LIMIT option for time series
-	if queryConfig.MaxDataPoints > 0 && queryConfig.isTimeSeriesType() && strings.Contains(queryConfig.FinalQuery, "LIMIT ") {
+	if queryConfig.MaxDataPoints > 0 && queryConfig.isTimeSeriesType() && !strings.Contains(queryConfig.FinalQuery, "LIMIT ") {
 		queryConfig.FinalQuery = fmt.Sprintf("%s LIMIT %d", queryConfig.FinalQuery, queryConfig.MaxDataPoints)
 	}
 
+	frame := data.NewFrame("")
 	dataResponse, err := queryConfig.fetchData(&config, password, privateKey)
 	if err != nil {
 		response.Error = err
@@ -350,4 +348,3 @@ func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, interva
 		}
 	}
 }
-
