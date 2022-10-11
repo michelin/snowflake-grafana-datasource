@@ -16,7 +16,7 @@ import (
 	sf "github.com/snowflakedb/gosnowflake"
 )
 
-const rowLimit = 10000
+const rowLimit = 1000000
 
 const timeSeriesType = "time series"
 
@@ -217,14 +217,12 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 	}
 
 	frame := data.NewFrame("")
-
 	dataResponse, err := queryConfig.fetchData(&config, password, privateKey)
 	if err != nil {
 		response.Error = err
 		return response
 	}
 	log.DefaultLogger.Debug("Response", "data", dataResponse)
-
 	for _, table := range dataResponse.Tables {
 		timeColumnIndex := -1
 		for i, column := range table.Columns {
@@ -287,8 +285,16 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 			if err != nil {
 				log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
 			}
+			for _,field := range frame.Fields {
+				if field.Labels != nil {
+					for _,val := range field.Labels {
+						field.Name += "_" + string(val)
+					}
+				}
+			}
 		}
 	}
+	log.DefaultLogger.Debug("Converted wide time Frame is:", frame)
 	frame.RefID = dataQuery.RefID
 	frame.Meta = &data.FrameMeta{
 		Type:                data.FrameTypeTimeSeriesWide,
