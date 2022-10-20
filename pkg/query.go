@@ -211,6 +211,9 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 		return response
 	}
 
+	// Remove final semi column
+	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
+
 	// Add max Datapoint LIMIT option for time series
 	if queryConfig.MaxDataPoints > 0 && queryConfig.isTimeSeriesType() && !strings.Contains(queryConfig.FinalQuery, "LIMIT ") {
 		queryConfig.FinalQuery = fmt.Sprintf("%s LIMIT %d", queryConfig.FinalQuery, queryConfig.MaxDataPoints)
@@ -285,9 +288,9 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 			if err != nil {
 				log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
 			}
-			for _,field := range frame.Fields {
+			for _, field := range frame.Fields {
 				if field.Labels != nil {
-					for _,val := range field.Labels {
+					for _, val := range field.Labels {
 						field.Name += "_" + string(val)
 					}
 				}
