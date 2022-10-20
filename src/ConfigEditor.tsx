@@ -13,7 +13,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
 
-    var value;
+    let value;
     if (event.target.value.includes('.snowflakecomputing.com')) {
       value = event.target.value;
     } else {
