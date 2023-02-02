@@ -11,10 +11,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.2
+        uses: actions/setup-node@v3
         with:
           node-version: "14.x"
 
@@ -56,20 +56,20 @@ jobs:
 
       - name: Setup Go environment
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: "1.18"
 
       - name: Test backend
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: magefile/mage-action@v1
+        uses: magefile/mage-action@v2
         with:
           version: latest
           args: coverage
 
       - name: Build backend
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: magefile/mage-action@v1
+        uses: magefile/mage-action@v2
         with:
           version: latest
-          args: -v build:linux build:linuxARM build:linuxARM64  build:windows build:darwin
+          args: -v build:linux build:linuxARM build:linuxARM64  build:windows build:darwin build:darwinARM64
