@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0
+
+### ⭐ Added
+- Add darwin_arm64 binary
+- Upgrade grafana-plugin-sdk-go to version v0.148.0.
+- Upgrade js dependencies
+
 ## 1.3.0
 
 ### 🔨 Changed
