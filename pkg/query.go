@@ -143,32 +143,30 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 			continue
 		}
 
-		switch column_types[i].ScanType() {
-		case reflect.TypeOf(boolean):
-			values[i] = values[i].(bool)
-		case reflect.TypeOf(tim):
-			values[i] = values[i].(time.Time)
-		case reflect.TypeOf(integer):
-			n := new(big.Float)
-			n.SetString(values[i].(string))
-			precision, _, _ := columnTypes[i].DecimalSize()
-			if precision > 1 {
-				values[i], _ = n.Float64()
-			} else {
-				values[i], _ = n.Int64()
-			}
-		case reflect.TypeOf(float):
-			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
-				values[i] = v
-			} else {
-				log.DefaultLogger.Info("Rows", "Error converting string to float64", values[i])
-			}
-		case reflect.TypeOf(str):
-			if values[i] != nil {
+		if values[i] != nil {
+			switch column_types[i].ScanType() {
+			case reflect.TypeOf(boolean):
+				values[i] = values[i].(bool)
+			case reflect.TypeOf(tim):
+				values[i] = values[i].(time.Time)
+			case reflect.TypeOf(integer):
+				n := new(big.Float)
+				n.SetString(values[i].(string))
+				precision, _, _ := columnTypes[i].DecimalSize()
+				if precision > 1 {
+					values[i], _ = n.Float64()
+				} else {
+					values[i], _ = n.Int64()
+				}
+			case reflect.TypeOf(float):
+				if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
+					values[i] = v
+				} else {
+					log.DefaultLogger.Info("Rows", "Error converting string to float64", values[i])
+				}
+			case reflect.TypeOf(str):
 				values[i] = values[i].(string)
-			}
-		default:
-			if values[i] != nil {
+			default:
 				values[i] = values[i].(string)
 			}
 		}
