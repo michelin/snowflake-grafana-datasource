@@ -36,8 +36,8 @@ func TestEvaluateMacro(t *testing.T) {
 		{name: "__timeEpoch", args: []string{"col"}, response: "extract(epoch from col) as time"},
 		// __timeFilter
 		{name: "__timeFilter", args: []string{}, err: "missing time column argument for macro __timeFilter"},
-		{name: "__timeFilter", args: []string{"col"}, config: configStruct, response: "CONVERT_TIMEZONE('UTC', 'UTC', col) > '" + timeRange.From.UTC().Format(time.RFC3339Nano) + "' AND CONVERT_TIMEZONE('UTC', 'UTC', col) < '" + timeRange.To.UTC().Format(time.RFC3339Nano) + "'"},
-		{name: "__timeFilter", args: []string{"col", "'America/New_York'"}, config: configStruct, response: "CONVERT_TIMEZONE('UTC', 'America/New_York', col) > '" + timeRange.From.UTC().Format(time.RFC3339Nano) + "' AND CONVERT_TIMEZONE('UTC', 'America/New_York', col) < '" + timeRange.To.UTC().Format(time.RFC3339Nano) + "'"},
+		{name: "__timeFilter", args: []string{"col"}, config: configStruct, response: "col BETWEEN '" + timeRange.From.UTC().Format(time.RFC3339Nano) + "' AND '" + timeRange.To.UTC().Format(time.RFC3339Nano) + "'"},
+		{name: "__timeFilter", args: []string{"col", "'America/New_York'"}, config: configStruct, response: "CONVERT_TIMEZONE('UTC', 'America/New_York', col) >= '" + timeRange.From.UTC().Format(time.RFC3339Nano) + "' AND CONVERT_TIMEZONE('UTC', 'America/New_York', col) <= '" + timeRange.To.UTC().Format(time.RFC3339Nano) + "'"},
 		// __timeFrom
 		{name: "__timeFrom", args: []string{}, config: configStruct, response: "'" + timeRange.From.UTC().Format(time.RFC3339Nano) + "'"},
 		// __timeTo
