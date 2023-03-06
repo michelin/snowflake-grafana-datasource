@@ -159,7 +159,9 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 					values[i], _ = n.Int64()
 				}
 			case reflect.TypeOf(float):
-				if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
+				if reflect.TypeOf(float) == reflect.TypeOf(values[i]) {
+					values[i] = values[i].(float64)
+				} else if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 					values[i] = v
 				} else {
 					log.DefaultLogger.Info("Rows", "Error converting string to float64", values[i])

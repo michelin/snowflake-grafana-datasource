@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.1
+
+### 🐞 Bug Fixes
+- Fix issue with REAL type with Snowflake go SDK (1.6.14)
+- Fix issue with NULL type
+
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@benesch](https://github.com/benesch)
+
 ## 1.4.0
 
 ### ⭐ Added
