@@ -214,11 +214,6 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 	// Remove final semi column
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
-	// Add max Datapoint LIMIT option for time series
-	if queryConfig.MaxDataPoints > 0 && queryConfig.isTimeSeriesType() && !strings.Contains(queryConfig.FinalQuery, "LIMIT ") {
-		queryConfig.FinalQuery = fmt.Sprintf("%s LIMIT %d", queryConfig.FinalQuery, queryConfig.MaxDataPoints)
-	}
-
 	frame := data.NewFrame("")
 	dataResponse, err := queryConfig.fetchData(&config, password, privateKey)
 	if err != nil {
