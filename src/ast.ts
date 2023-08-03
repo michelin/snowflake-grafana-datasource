@@ -1,6 +1,7 @@
 import { parseFirst, Statement, SelectFromStatement, astMapper, toSql } from 'pgsql-ast-parser';
 
 export function sqlToStatement(sql: string): Statement {
+  console.log('ast: sqlToStatement called')
   const replaceFuncs: Array<{
     startIndex: number;
     name: string;
@@ -23,6 +24,7 @@ export function sqlToStatement(sql: string): Statement {
   let ast: Statement;
   try {
     ast = parseFirst(sql);
+    console.log('parsed sql: '+sql+' into: '+ast)
   } catch (err) {
     console.error(`Failed to parse SQL statement into an AST: ${err}`);
     return {} as Statement;
@@ -61,6 +63,7 @@ export function sqlToStatement(sql: string): Statement {
 
 export function getTable(sql: string): string {
   const stm = sqlToStatement(sql);
+  console.log('attempting to parse for statement: '+stm);
   if (stm.type !== 'select' || !stm.from?.length || stm.from?.length <= 0) {
     return '';
   }
@@ -82,6 +85,7 @@ export function getTable(sql: string): string {
 }
 
 export function getFields(sql: string): string[] {
+  console.log('ast: getFields called')
   const stm = sqlToStatement(sql) as SelectFromStatement;
   if (stm.type !== 'select' || !stm.columns?.length || stm.columns?.length <= 0) {
     return [];

@@ -4,10 +4,12 @@ export default class AdHocFilter {
   private _targetTable = '';
 
   setTargetTable(table: string) {
+    console.log('adHocFilter: setTargetTable called')
     this._targetTable = table;
   }
 
   setTargetTableFromQuery(query: string) {
+    console.log('adHocFilter: setTargetTableFromQuery called');
     this._targetTable = getTable(query);
     if (this._targetTable === '') {
       console.error('Failed to get table from adhoc query.');
@@ -16,7 +18,9 @@ export default class AdHocFilter {
   }
 
   apply(sql: string, adHocFilters: AdHocVariableFilter[]): string {
-    if (this._targetTable === '' || sql === '' || !adHocFilters || adHocFilters.length === 0) {
+    console.log('adHocFilter: apply called')
+    if (sql === '' || !adHocFilters || adHocFilters.length === 0) {
+      console.log('return \''+sql+'\' from adHocFilter empty check 1');
       return sql;
     }
     const filter = adHocFilters[0];
@@ -24,6 +28,7 @@ export default class AdHocFilter {
       this._targetTable = filter.key.split('.')[0];
     }
     if (this._targetTable === '' || !sql.match(new RegExp(`.*\\b${this._targetTable}\\b.*`, 'gi'))) {
+      console.log('return \''+sql+'\' from adHocFilter emtpy check 2');
       return sql;
     }
     let filters = adHocFilters.map((f, i) => {
@@ -33,6 +38,7 @@ export default class AdHocFilter {
       return ` ${key} ${f.operator} ${value} ${condition}`;
     }).join('');
     sql = sql.replace(';', '');
+    console.log('return \''+`${sql} settings additional_table_filters={'${this._targetTable}' : '${filters}'}`+'\' from adHocFilter');
     return `${sql} settings additional_table_filters={'${this._targetTable}' : '${filters}'}`;
   }
 }
