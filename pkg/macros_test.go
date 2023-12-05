@@ -29,7 +29,7 @@ func TestEvaluateMacro(t *testing.T) {
 		fillValue float64
 	}{
 		// __time
-		{name: "__time", args: []string{"col"}, response: "TRY_TO_TIMESTAMP(col) AS time"},
+		{name: "__time", args: []string{"col"}, response: "TRY_TO_TIMESTAMP_NTZ(col) AS time"},
 		{name: "__time", args: []string{}, err: "missing time column argument for macro __time"},
 		// __timeEpoch
 		{name: "__timeEpoch", args: []string{}, err: "missing time column argument for macro __timeEpoch"},
@@ -45,17 +45,17 @@ func TestEvaluateMacro(t *testing.T) {
 		// __timeGroup
 		{name: "__timeGroup", args: []string{}, err: "macro __timeGroup needs time column and interval and optional fill value"},
 		{name: "__timeGroup", args: []string{"col", "xxxx"}, err: "error parsing interval xxxx"},
-		{name: "__timeGroup", args: []string{"col", "1d"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START')"},
-		{name: "__timeGroup", args: []string{"col", "1d", "NULL"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START')", fillMode: NullFill},
-		{name: "__timeGroup", args: []string{"col", "1d", "previous"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START')", fillMode: PreviousFill},
-		{name: "__timeGroup", args: []string{"col", "1d", "12"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START')", fillMode: ValueFill, fillValue: 12},
+		{name: "__timeGroup", args: []string{"col", "1d"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')"},
+		{name: "__timeGroup", args: []string{"col", "1d", "NULL"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: NullFill},
+		{name: "__timeGroup", args: []string{"col", "1d", "previous"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: PreviousFill},
+		{name: "__timeGroup", args: []string{"col", "1d", "12"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: ValueFill, fillValue: 12},
 		// __timeGroupAlias
 		{name: "__timeGroupAlias", args: []string{}, err: "macro __timeGroup needs time column and interval and optional fill value"},
 		{name: "__timeGroupAlias", args: []string{"col", "xxxx"}, err: "error parsing interval xxxx"},
-		{name: "__timeGroupAlias", args: []string{"col", "1d"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START') AS time"},
-		{name: "__timeGroupAlias", args: []string{"col", "1d", "NULL"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START') AS time", fillMode: NullFill},
-		{name: "__timeGroupAlias", args: []string{"col", "1d", "previous"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START') AS time", fillMode: PreviousFill},
-		{name: "__timeGroupAlias", args: []string{"col", "1d", "12"}, response: "TIME_SLICE(TO_TIMESTAMP(col), 86400, 'SECOND', 'START') AS time", fillMode: ValueFill, fillValue: 12},
+		{name: "__timeGroupAlias", args: []string{"col", "1d"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START') AS time"},
+		{name: "__timeGroupAlias", args: []string{"col", "1d", "NULL"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START') AS time", fillMode: NullFill},
+		{name: "__timeGroupAlias", args: []string{"col", "1d", "previous"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START') AS time", fillMode: PreviousFill},
+		{name: "__timeGroupAlias", args: []string{"col", "1d", "12"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START') AS time", fillMode: ValueFill, fillValue: 12},
 		{name: "__timeGroupAlias", args: []string{"col", "1d", "test"}, err: "error parsing fill value test"},
 		// __unixEpochFilter
 		{name: "__unixEpochFilter", args: []string{}, err: "missing time column argument for macro __unixEpochFilter"},
