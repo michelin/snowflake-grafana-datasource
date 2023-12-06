@@ -78,7 +78,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) == 0 {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
-		return fmt.Sprintf("TRY_TO_TIMESTAMP(%s) AS time", args[0]), nil
+		return fmt.Sprintf("TRY_TO_TIMESTAMP_NTZ(%s) AS time", args[0]), nil
 	case "__timeEpoch":
 		if len(args) == 0 {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
@@ -113,7 +113,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 			}
 		}
 
-		return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP(%s), %v, 'SECOND', 'START')", args[0], interval.Seconds()), nil
+		return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP_NTZ(%s), %v, 'SECOND', 'START')", args[0], interval.Seconds()), nil
 	case "__timeGroupAlias":
 		tg, err := evaluateMacro("__timeGroup", args, configStruct)
 		if err == nil {
