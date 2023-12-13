@@ -93,7 +93,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) > 1 {
 			timezone = args[1]
 		}
-		return fmt.Sprintf("CONVERT_TIMEZONE('UTC', %s, %s) > '%s' AND CONVERT_TIMEZONE('UTC', %s, %s) < '%s'", timezone, column, timeRange.From.UTC().Format(time.RFC3339Nano), timezone, column, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
+		return fmt.Sprintf("%s > CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz) AND %s < CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz)", column, timezone, timeRange.From.UTC().Format(time.RFC3339Nano), column, timezone, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeFrom":
 		return fmt.Sprintf("'%s'", timeRange.From.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeTo":
