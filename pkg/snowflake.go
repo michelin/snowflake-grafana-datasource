@@ -105,7 +105,7 @@ type instanceSettings struct {
 	httpClient *http.Client
 }
 
-func newDataSourceInstance(setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	log.DefaultLogger.Info("Creating instance")
 	return &instanceSettings{
 		httpClient: &http.Client{},

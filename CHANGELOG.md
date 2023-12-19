@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.5.0
+
+### 🐞 Bug Fixes
+- Do not limit timerseries data unless query contains LIMIT clause.
+
+### 🔨 Changed
+- Upgrade grafana-plugin-sdk-go to version v0.196.0.
+- Upgrade js dependencies.
+- Upgrade gosnowflake to version v1.7.1.
+
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@kranthikirang](https://github.com/kranthikirang)
+
 ## 1.4.1
 
 ### 🐞 Bug Fixes
