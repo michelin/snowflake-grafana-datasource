@@ -6,13 +6,16 @@
 - Do not limit timerseries data unless query contains LIMIT clause.
 
 ### 🔨 Changed
-- Upgrade grafana-plugin-sdk-go to version v0.196.0.
+- Improve timezone conversion in macro $__timeFilter()
+- Use to_timestamp_ntz instead of to_timestamp
+- Upgrade grafana-plugin-sdk-go to version v0.197.0.
 - Upgrade js dependencies.
 - Upgrade gosnowflake to version v1.7.1.
 
 ### ❤️ Contributors
 We'd like to thank all the contributors who worked on this release!
 - [@kranthikirang](https://github.com/kranthikirang)
+- [@rumbin](https://github.com/rumbin)
 
 ## 1.4.1
 
