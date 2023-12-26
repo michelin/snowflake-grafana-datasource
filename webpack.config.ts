@@ -2,12 +2,12 @@ import type { Configuration } from 'webpack';
 import grafanaConfig from './.config/webpack/webpack.config';
 import CopyWebpackPlugin from "copy-webpack-plugin";
 import {hasReadme} from "./.config/webpack/utils";
-import {mergeWith} from "lodash";
+import {forEach, mergeWith} from "lodash";
 
 const config = async (env): Promise<Configuration> => {
     const baseConfig = await grafanaConfig(env);
 
-    // merge with default congig, but replace plugins section
+    // merge with default config, but replace plugins section
     return mergeWith(baseConfig, {
         plugins: [
             new CopyWebpackPlugin({
@@ -27,9 +27,11 @@ const config = async (env): Promise<Configuration> => {
             }),
         ],
     }, (objValue, srcValue) => {
-        if (Array.isArray(objValue)) {
-            return srcValue;
-        }
+        forEach(objValue, (val, key) => {
+           if (val.constructor.name === srcValue.constructor.name) {
+                objValue[key] = srcValue[0]
+           }
+        });
     });
 };
 
