@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1
+
+### 🐞 Bug Fixes
+- The slice_length must be an integer greater than or equal to 1.
+
 ## 1.5.0
 
 ### 🐞 Bug Fixes
