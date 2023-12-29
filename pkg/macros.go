@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -113,7 +114,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 			}
 		}
 
-		return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP_NTZ(%s), %v, 'SECOND', 'START')", args[0], interval.Seconds()), nil
+		return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP_NTZ(%s), %v, 'SECOND', 'START')", args[0], math.Max(1, interval.Seconds())), nil
 	case "__timeGroupAlias":
 		tg, err := evaluateMacro("__timeGroup", args, configStruct)
 		if err == nil {
