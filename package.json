@@ -66,6 +66,7 @@
     "@grafana/ui": "latest",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "sql-formatter": "^15.2.0",
     "tslib": "latest"
   },
   "packageManager": "yarn@1.22.17"
