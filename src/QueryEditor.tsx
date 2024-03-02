@@ -1,7 +1,7 @@
 import defaults from 'lodash/defaults';
 
-import React, { ChangeEvent, PureComponent } from 'react';
-import { TextArea, Select, TagsInput, InlineFormLabel } from '@grafana/ui';
+import React, { PureComponent } from 'react';
+import { Select, TagsInput, InlineFormLabel, CodeEditor, Field } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
 import { defaultQuery, SnowflakeOptions, SnowflakeQuery } from './types';
@@ -9,9 +9,10 @@ import { defaultQuery, SnowflakeOptions, SnowflakeQuery } from './types';
 type Props = QueryEditorProps<DataSource, SnowflakeQuery, SnowflakeOptions>;
 
 export class QueryEditor extends PureComponent<Props> {
-  onQueryTextChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+
+  onQueryTextChange = (newQuery: string) => {
     const { onChange, query } = this.props;
-    onChange({ ...query, queryText: event.target.value });
+    onChange({ ...query, queryText: newQuery });
   };
 
   onQueryTypeChange = (value: SelectableValue<string>) => {
@@ -47,7 +48,7 @@ export class QueryEditor extends PureComponent<Props> {
     return (
       <div>
         <div className="gf-form max-width-25" role="query-type-container">
-          <InlineFormLabel width={5}>Query Type</InlineFormLabel>
+          <InlineFormLabel width={10}>Query Type</InlineFormLabel>
           <Select
             width={20}
             allowCustomValue={false}
@@ -57,16 +58,19 @@ export class QueryEditor extends PureComponent<Props> {
             value={selectedOption}
           />
         </div>
-        <div className="gf-form">
-          <TextArea
-            style={{ height: 100 }}
-            role="query-editor-input"
+        <Field>
+          <CodeEditor
             value={queryText || ''}
             onBlur={() => this.props.onRunQuery()}
             onChange={this.onQueryTextChange}
-            label="Query Text"
+            language="sql"
+            showLineNumbers={true}
+            // width={'100%'}
+            height={'200px'}
+            showMiniMap={false}
+            onSave={() => this.props.onRunQuery()}
           />
-        </div>
+        </Field>
         {queryType === this.options[1].value && (
           <div className="gf-form">
             <div style={{ display: 'flex', flexDirection: 'column', marginRight: 15 }} role="time-column-selector">
