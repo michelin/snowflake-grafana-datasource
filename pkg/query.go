@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -56,12 +57,13 @@ type queryModel struct {
 	TimeColumns []string `json:"timeColumns"`
 }
 
-func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
+func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
 	// Custom configuration to reduce memory footprint
 	sf.MaxChunkDownloadWorkers = 2
 	sf.CustomJSONDecoderEnabled = true
 
 	connectionString := getConnectionString(config, password, privateKey)
+
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
 		log.DefaultLogger.Error("Could not open database", "err", err)
@@ -70,8 +72,13 @@ func (qc *queryConfigStruct) fetchData(config *pluginConfig, password string, pr
 	defer db.Close()
 
 	log.DefaultLogger.Info("Query", "finalQuery", qc.FinalQuery)
-	rows, err := db.Query(qc.FinalQuery)
+	rows, err := db.QueryContext(ctx, qc.FinalQuery)
 	if err != nil {
+		if strings.Contains(err.Error(), "000605") {
+			log.DefaultLogger.Info("Query got cancelled", "query", qc.FinalQuery, "err", err)
+			return result, err
+		}
+
 		log.DefaultLogger.Error("Could not execute query", "query", qc.FinalQuery, "err", err)
 		return result, err
 	}
@@ -177,7 +184,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
@@ -215,7 +222,7 @@ func (td *SnowflakeDatasource) query(dataQuery backend.DataQuery, config pluginC
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
 	frame := data.NewFrame("")
-	dataResponse, err := queryConfig.fetchData(&config, password, privateKey)
+	dataResponse, err := queryConfig.fetchData(ctx, &config, password, privateKey)
 	if err != nil {
 		response.Error = err
 		return response

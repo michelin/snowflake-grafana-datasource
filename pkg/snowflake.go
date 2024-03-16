@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"net/http"
+
 	"net/url"
 )
 
@@ -57,7 +58,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(q, config, password, privateKey)
+		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey)
 	}
 
 	return response, nil
@@ -102,14 +103,11 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 }
 
 type instanceSettings struct {
-	httpClient *http.Client
 }
 
 func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	log.DefaultLogger.Info("Creating instance")
-	return &instanceSettings{
-		httpClient: &http.Client{},
-	}, nil
+	return &instanceSettings{}, nil
 }
 
 func (s *instanceSettings) Dispose() {
