@@ -1,18 +1,41 @@
 import defaults from 'lodash/defaults';
 
-import React, { ChangeEvent, PureComponent } from 'react';
-import { TextArea, Select, TagsInput, InlineFormLabel } from '@grafana/ui';
+import React, { PureComponent } from 'react';
+import { Select, TagsInput, InlineFormLabel, CodeEditor, Field, Button } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
 import { defaultQuery, SnowflakeOptions, SnowflakeQuery } from './types';
+import { format } from 'sql-formatter'
 
 type Props = QueryEditorProps<DataSource, SnowflakeQuery, SnowflakeOptions>;
 
 export class QueryEditor extends PureComponent<Props> {
-  onQueryTextChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+
+  onQueryTextChange = (newQuery: string) => {
     const { onChange, query } = this.props;
-    onChange({ ...query, queryText: event.target.value });
+    onChange({ ...query, queryText: newQuery });
   };
+
+  onFormat = () => {
+    try {
+      let formatted = format(this.props.query.queryText || "", { 
+        language: 'snowflake', 
+        denseOperators: false, 
+        keywordCase: 'upper',
+      });
+      // The formatter does not handle the $__ syntax correctly,
+      // it adds a space after the method name before the bracket.
+      // We fix that here.
+      formatted = formatted.replace(/\$__(\w+)\s\(/g, '$__$1(');
+      console.log("Formatted query", formatted)
+      this.props.onChange({ ...this.props.query, queryText: formatted });
+      console.log("Formatted query", formatted)
+      this.props.onChange({ ...this.props.query, queryText: formatted });
+    } catch (e) {
+      console.log('Error formatting query', e);
+    }
+
+  }
 
   onQueryTypeChange = (value: SelectableValue<string>) => {
     const { onChange, query } = this.props;
@@ -47,7 +70,7 @@ export class QueryEditor extends PureComponent<Props> {
     return (
       <div>
         <div className="gf-form max-width-25" role="query-type-container">
-          <InlineFormLabel width={5}>Query Type</InlineFormLabel>
+          <InlineFormLabel width={10}>Query Type</InlineFormLabel>
           <Select
             width={20}
             allowCustomValue={false}
@@ -57,16 +80,22 @@ export class QueryEditor extends PureComponent<Props> {
             value={selectedOption}
           />
         </div>
-        <div className="gf-form">
-          <TextArea
-            style={{ height: 100 }}
-            role="query-editor-input"
+        <Field>
+          <CodeEditor
             value={queryText || ''}
             onBlur={() => this.props.onRunQuery()}
             onChange={this.onQueryTextChange}
-            label="Query Text"
+            language="sql"
+            showLineNumbers={true}
+            // width={'100%'}
+            height={'200px'}
+            showMiniMap={false}
+            onSave={() => this.props.onRunQuery()}
           />
-        </div>
+        </Field>
+        <Field>
+          <Button variant="secondary" onClick={this.onFormat}>Format</Button>
+        </Field>
         {queryType === this.options[1].value && (
           <div className="gf-form">
             <div style={{ display: 'flex', flexDirection: 'column', marginRight: 15 }} role="time-column-selector">
