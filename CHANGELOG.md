@@ -5,21 +5,21 @@
 ### ⭐ Added
 - Use Grafana's Code editor for query editing.
 - Add query context cancellation.
+- Possibility to choose the fill mode for time series queries.
+
+### 🐞 Bug Fixes
+- The slice_length must be an integer greater than or equal to 1.
 
 ### 🔨 Changed
+- Use FillMode 'NULL' when fillMode is not provided.
 - Upgrade GitHub actions used for CI/CD.
-- Upgrade grafana-plugin-sdk-go to version v0.215.0.
+- Upgrade grafana-plugin-sdk-go to version v0.217.0.
 - Upgrade go to version 1.21.
 - Upgrade gosnowflake to version v1.8.0.
 
 ### ❤️ Contributors
 We'd like to thank all the contributors who worked on this release!
 - [@alexnederlof](https://github.com/alexnederlof)
-
-## 1.5.1
-
-### 🐞 Bug Fixes
-- The slice_length must be an integer greater than or equal to 1.
 
 ## 1.5.0
 

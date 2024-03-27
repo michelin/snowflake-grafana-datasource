@@ -4,6 +4,7 @@ export interface SnowflakeQuery extends DataQuery {
   queryText?: string;
   queryType?: string;
   timeColumns?: string[];
+  fillMode?: string;
 }
 
 export const defaultQuery: Partial<SnowflakeQuery> = {
@@ -13,6 +14,7 @@ export const defaultQuery: Partial<SnowflakeQuery> = {
     'GROUP BY time ORDER BY time',
   queryType: 'table',
   timeColumns: ['time'],
+  fillMode: 'null'
 };
 
 /**

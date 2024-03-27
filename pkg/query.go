@@ -55,6 +55,7 @@ type queryModel struct {
 	QueryText   string   `json:"queryText"`
 	QueryType   string   `json:"queryType"`
 	TimeColumns []string `json:"timeColumns"`
+	FillMode    string   `json:"fillMode"`
 }
 
 func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
@@ -203,6 +204,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		FinalQuery:    qm.QueryText,
 		RawQuery:      qm.QueryText,
 		TimeColumns:   qm.TimeColumns,
+		FillMode:      qm.FillMode,
 		QueryType:     dataQuery.QueryType,
 		Interval:      dataQuery.Interval,
 		TimeRange:     dataQuery.TimeRange,
@@ -283,21 +285,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, len(table.Rows)))
 	}
 	if queryConfig.isTimeSeriesType() {
-		tsSchema := frame.TimeSeriesSchema()
-		if tsSchema.Type == data.TimeSeriesTypeLong {
-			fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
-			frame, err = data.LongToWide(frame, fillMode)
-			if err != nil {
-				log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
-			}
-			for _, field := range frame.Fields {
-				if field.Labels != nil {
-					for _, val := range field.Labels {
-						field.Name += "_" + string(val)
-					}
-				}
-			}
-		}
+		frame = td.longToWide(frame, queryConfig, dataResponse, err)
 	}
 	log.DefaultLogger.Debug("Converted wide time Frame is:", frame)
 	frame.RefID = dataQuery.RefID
@@ -311,8 +299,27 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	return response
 }
 
+func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryConfigStruct, dataResponse DataQueryResult, err error) *data.Frame {
+	tsSchema := frame.TimeSeriesSchema()
+	if tsSchema.Type == data.TimeSeriesTypeLong {
+		fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
+		frame, err = data.LongToWide(frame, fillMode)
+		if err != nil {
+			log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
+		}
+		for _, field := range frame.Fields {
+			if field.Labels != nil {
+				for _, val := range field.Labels {
+					field.Name += "_" + string(val)
+				}
+			}
+		}
+	}
+	return frame
+}
+
 func mapFillMode(fillModeString string) data.FillMode {
-	var fillMode data.FillMode
+	var fillMode = data.FillModeNull
 	switch fillModeString {
 	case ValueFill:
 		fillMode = data.FillModeValue
