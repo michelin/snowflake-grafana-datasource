@@ -8,6 +8,7 @@
 - Possibility to choose the fill mode for time series queries.
 
 ### 🐞 Bug Fixes
+- Fix crash when time series data are empty.
 - The slice_length must be an integer greater than or equal to 1.
 
 ### 🔨 Changed

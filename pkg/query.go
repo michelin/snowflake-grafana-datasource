@@ -303,9 +303,11 @@ func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryCo
 	tsSchema := frame.TimeSeriesSchema()
 	if tsSchema.Type == data.TimeSeriesTypeLong {
 		fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
-		frame, err = data.LongToWide(frame, fillMode)
-		if err != nil {
-			log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
+		if len(dataResponse.Tables) > 0 && len(dataResponse.Tables[0].Rows) > 0 {
+			frame, err = data.LongToWide(frame, fillMode)
+			if err != nil {
+				log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
+			}
 		}
 		for _, field := range frame.Fields {
 			if field.Labels != nil {
