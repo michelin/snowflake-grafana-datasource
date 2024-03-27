@@ -65,3 +65,28 @@ func TestMax(t *testing.T) {
 		})
 	}
 }
+
+func TestPreviousRowWithEmptyRows(t *testing.T) {
+	rows := [][]interface{}{}
+	result := previousRow(rows, 1)
+	require.Nil(t, result)
+}
+
+func TestPreviousRowWithNonEmptyRowsAndIndexZero(t *testing.T) {
+	rows := [][]interface{}{
+		{"row1"},
+		{"row2"},
+	}
+	result := previousRow(rows, 0)
+	require.Equal(t, rows[0], result)
+}
+
+func TestPreviousRowWithNonEmptyRowsAndIndexGreaterThanZero(t *testing.T) {
+	rows := [][]interface{}{
+		{"row1"},
+		{"row2"},
+		{"row3"},
+	}
+	result := previousRow(rows, 2)
+	require.Equal(t, rows[1], result)
+}

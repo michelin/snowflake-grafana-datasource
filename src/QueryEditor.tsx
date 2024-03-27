@@ -1,7 +1,7 @@
 import defaults from 'lodash/defaults';
 
 import React, { PureComponent } from 'react';
-import { Select, TagsInput, InlineFormLabel, CodeEditor, Field, Button } from '@grafana/ui';
+import { Select, TagsInput, InlineFormLabel, CodeEditor, Field, Button, RadioButtonGroup } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
 import { defaultQuery, SnowflakeOptions, SnowflakeQuery } from './types';
@@ -27,9 +27,6 @@ export class QueryEditor extends PureComponent<Props> {
       // it adds a space after the method name before the bracket.
       // We fix that here.
       formatted = formatted.replace(/\$__(\w+)\s\(/g, '$__$1(');
-      console.log("Formatted query", formatted)
-      this.props.onChange({ ...this.props.query, queryText: formatted });
-      console.log("Formatted query", formatted)
       this.props.onChange({ ...this.props.query, queryText: formatted });
     } catch (e) {
       console.log('Error formatting query', e);
@@ -59,13 +56,29 @@ export class QueryEditor extends PureComponent<Props> {
 
   options: Array<SelectableValue<string>> = [
     { label: 'Table', value: 'table' },
-    { label: 'Time series', value: 'time series' },
+    { label: 'Time series', value: 'time series' }
   ];
+
+  optionsFillMode: Array<SelectableValue<string>> = [
+    { label: 'Don\'t fill', value: 'null' },
+    { label: 'Keep previous value', value: 'previous' }
+  ];
+
+  onFillModeChange = (value: any) => {
+    const {onChange, query} = this.props;
+    onChange({
+      ...query,
+      fillMode: value || this.optionsFillMode[0].value,
+    });
+    this.props.onRunQuery();
+  };
+
 
   render() {
     const query = defaults(this.props.query, defaultQuery);
-    const { queryText, queryType, timeColumns } = query;
+    const { queryText, queryType, fillMode, timeColumns } = query;
     const selectedOption = this.options.find((options) => options.value === queryType) || this.options;
+    const selectedFillMode = this.optionsFillMode.find((options) => options.value === fillMode)?.value || this.optionsFillMode[0].value;
 
     return (
       <div>
@@ -81,32 +94,32 @@ export class QueryEditor extends PureComponent<Props> {
           />
         </div>
         <Field>
-          <CodeEditor
-            value={queryText || ''}
-            onBlur={() => this.props.onRunQuery()}
-            onChange={this.onQueryTextChange}
-            language="sql"
-            showLineNumbers={true}
-            // width={'100%'}
-            height={'200px'}
-            showMiniMap={false}
-            onSave={() => this.props.onRunQuery()}
-          />
-        </Field>
-        <Field>
-          <Button variant="secondary" onClick={this.onFormat}>Format</Button>
+          <div>
+            <CodeEditor
+              value={queryText || ''}
+              onBlur={() => this.props.onRunQuery()}
+              onChange={this.onQueryTextChange}
+              language="sql"
+              showLineNumbers={true}
+              height={'200px'}
+              showMiniMap={false}
+              onSave={() => this.props.onRunQuery()}
+            />
+            <Button variant="secondary" icon="repeat" onClick={this.onFormat}>Format Query</Button>
+          </div>
         </Field>
         {queryType === this.options[1].value && (
-          <div className="gf-form">
-            <div style={{ display: 'flex', flexDirection: 'column', marginRight: 15 }} role="time-column-selector">
-              <InlineFormLabel>
-                <div style={{ whiteSpace: 'nowrap' }}>Time formatted columns</div>
-              </InlineFormLabel>
+          <div>
+            <Field label="Time series fill mode">
+              <RadioButtonGroup value={selectedFillMode} options={this.optionsFillMode} onChange={this.onFillModeChange}/>
+            </Field>
+            <Field label="Time formatted columns">
               <TagsInput
-                onChange={(tags: string[]) => this.onUpdateColumnTypes('timeColumns', tags)}
-                tags={timeColumns}
+                  width={40}
+                  onChange={(tags: string[]) => this.onUpdateColumnTypes('timeColumns', tags)}
+                  tags={timeColumns}
               />
-            </div>
+            </Field>
           </div>
         )}
       </div>
