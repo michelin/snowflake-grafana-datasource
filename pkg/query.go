@@ -289,6 +289,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 			frame, err = data.LongToWide(frame, fillMode)
 			if err != nil {
 				log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
+				frame = data.NewFrame("")
 			}
 			for _, field := range frame.Fields {
 				if field.Labels != nil {
