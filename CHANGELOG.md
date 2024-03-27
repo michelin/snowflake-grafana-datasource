@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.0 [Unreleased]
+## 1.6.0
 
 ### ⭐ Added
 - Use Grafana's Code editor for query editing.
@@ -25,7 +25,7 @@ We'd like to thank all the contributors who worked on this release!
 ## 1.5.0
 
 ### 🐞 Bug Fixes
-- Do not limit timerseries data unless query contains LIMIT clause.
+- Do not limit time series data unless query contains LIMIT clause.
 
 ### 🔨 Changed
 - Improve timezone conversion in macro $__timeFilter()
