@@ -97,13 +97,13 @@ export class QueryEditor extends PureComponent<Props> {
           <div>
             <CodeEditor
               value={queryText || ''}
-              onBlur={() => this.props.onRunQuery()}
+              onBlur={this.props.onRunQuery}
               onChange={this.onQueryTextChange}
               language="sql"
               showLineNumbers={true}
               height={'200px'}
               showMiniMap={false}
-              onSave={() => this.props.onRunQuery()}
+              onSave={this.props.onRunQuery}
             />
             <Button variant="secondary" icon="repeat" onClick={this.onFormat}>Format Query</Button>
           </div>
@@ -116,6 +116,7 @@ export class QueryEditor extends PureComponent<Props> {
             <Field label="Time formatted columns">
               <TagsInput
                   width={40}
+                  placeholder="Time series column name"
                   onChange={(tags: string[]) => this.onUpdateColumnTypes('timeColumns', tags)}
                   tags={timeColumns}
               />
