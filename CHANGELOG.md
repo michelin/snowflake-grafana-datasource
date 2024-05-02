@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.1
+
+### 🐞 Bug Fixes
+- Fix Private Data Source Connect bug, that prevents the plugin update to function correctly.
+
+### 🔨 Changed
+- Upgrade grafana-plugin-sdk-go to version v0.228.0.
+- Upgrade gosnowflake to version v1.9.0.
+
 ## 1.6.0
 
 ### ⭐ Added

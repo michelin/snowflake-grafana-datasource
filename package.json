@@ -1,6 +1,6 @@
 {
   "name": "michelin-snowflake-datasource",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Data source for Snowflake",
   "scripts": {
     "build": "webpack -c ./webpack.config.ts --env production",
