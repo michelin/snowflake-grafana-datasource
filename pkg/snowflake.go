@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
@@ -12,6 +15,11 @@ import (
 
 	"net/url"
 )
+
+type DBDataResponse struct {
+	dataResponse backend.DataResponse
+	refID        string
+}
 
 // newDatasource returns datasource.ServeOpts.
 func newDatasource() datasource.ServeOpts {
@@ -43,25 +51,40 @@ type SnowflakeDatasource struct {
 func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 
 	// create response struct
-	response := backend.NewQueryDataResponse()
+	result := backend.NewQueryDataResponse()
 
-	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+	/*password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
 
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
 		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
 		return response, err
+	}*/
+	i, err := td.im.Get(ctx, req.PluginContext)
+	if err != nil {
+		return nil, err
+	}
+	instance := i.(*instanceSettings)
+	ch := make(chan DBDataResponse, len(req.Queries))
+	var wg sync.WaitGroup
+	// Execute each query in a goroutine and wait for them to finish afterwards
+	for _, query := range req.Queries {
+		wg.Add(1)
+		go td.query(ctx, &wg, ch, instance, query)
+		//go e.executeQuery(query, &wg, ctx, ch, queryjson)
 	}
 
-	// loop over queries and execute them individually.
-	for _, q := range req.Queries {
-		// save the response in a hashmap
-		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey)
+	wg.Wait()
+
+	// Read results from channels
+	close(ch)
+	result.Responses = make(map[string]backend.DataResponse)
+	for queryResult := range ch {
+		result.Responses[queryResult.refID] = queryResult.dataResponse
 	}
 
-	return response, nil
+	return result, nil
 }
 
 type pluginConfig struct {
@@ -103,13 +126,39 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 }
 
 type instanceSettings struct {
+	db *sql.DB
 }
 
 func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+
 	log.DefaultLogger.Info("Creating instance")
-	return &instanceSettings{}, nil
+	password := setting.DecryptedSecureJSONData["password"]
+	privateKey := setting.DecryptedSecureJSONData["privateKey"]
+
+	config, err := getConfig(&setting)
+	if err != nil {
+		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
+		return nil, err
+	}
+
+	connectionString := getConnectionString(&config, password, privateKey)
+	db, err := sql.Open("snowflake", connectionString)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetMaxOpenConns(100)                                  //config.DSInfo.JsonData.MaxOpenConns)
+	db.SetMaxIdleConns(100)                                  //config.DSInfo.JsonData.MaxIdleConns)
+	db.SetConnMaxLifetime(time.Duration(3600) * time.Second) //time.Duration(14400) * time.Second) //time.Duration(config.DSInfo.JsonData.ConnMaxLifetime) * time.Second)
+	return &instanceSettings{db: db}, nil
 }
 
 func (s *instanceSettings) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
+	if s.db != nil {
+		if err := s.db.Close(); err != nil {
+			log.DefaultLogger.Error("Failed to dispose db", "error", err)
+		}
+	}
+	log.DefaultLogger.Debug("DB disposed")
 }
