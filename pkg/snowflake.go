@@ -41,7 +41,8 @@ type SnowflakeDatasource struct {
 	// The instance manager can help with lifecycle management
 	// of datasource instances in plugins. It's not a requirements
 	// but a best practice that we recommend that you follow.
-	im instancemgmt.InstanceManager
+	im            instancemgmt.InstanceManager
+	actQueryCount queryCounter
 }
 
 // QueryData handles multiple queries and returns multiple responses.

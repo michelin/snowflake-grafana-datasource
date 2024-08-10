@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -27,6 +29,20 @@ func (qc *queryConfigStruct) isTimeSeriesType() bool {
 	return qc.QueryType == timeSeriesType
 }
 
+type queryCounter int32
+
+func (c *queryCounter) inc() int32 {
+	return atomic.AddInt32((*int32)(c), 1)
+}
+
+func (c *queryCounter) dec() int32 {
+	return atomic.AddInt32((*int32)(c), -1)
+}
+
+func (c *queryCounter) get() int32 {
+	return atomic.LoadInt32((*int32)(c))
+}
+
 type queryConfigStruct struct {
 	FinalQuery    string
 	QueryType     string
@@ -38,6 +54,7 @@ type queryConfigStruct struct {
 	FillMode      string
 	FillValue     float64
 	db            *sql.DB
+	actQueryCount *queryCounter
 }
 
 // type
@@ -62,11 +79,24 @@ type queryModel struct {
 }
 
 func (qc *queryConfigStruct) fetchData(ctx context.Context) (result DataQueryResult, err error) {
+	qc.actQueryCount.inc()
 	// Custom configuration to reduce memory footprint
 	sf.MaxChunkDownloadWorkers = 2
 	sf.CustomJSONDecoderEnabled = true
 
 	start := time.Now()
+	stats := qc.db.Stats()
+	defer func() {
+		qc.actQueryCount.dec()
+		duration := time.Since(start)
+		log.DefaultLogger.Info(fmt.Sprintf("%+v - %s - %d", stats, duration, int(qc.actQueryCount.get())))
+
+	}()
+	if int(qc.actQueryCount.get()) >= (stats.MaxOpenConnections * 10) {
+		err := errors.New("too many open connections")
+		log.DefaultLogger.Error("Poolsize exceeded", "query", qc.FinalQuery, "err", err)
+		return result, err
+	}
 	rows, err := qc.db.QueryContext(ctx, qc.FinalQuery)
 	if err != nil {
 		if strings.Contains(err.Error(), "000605") {
@@ -83,8 +113,6 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context) (result DataQueryRes
 		}
 	}()
 
-	duration := time.Since(start)
-	log.DefaultLogger.Info(fmt.Sprintf("%+v - %s", qc.db.Stats(), duration))
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		log.DefaultLogger.Error("Could not get column types", "err", err)
@@ -230,6 +258,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		TimeRange:     dataQuery.TimeRange,
 		MaxDataPoints: dataQuery.MaxDataPoints,
 		db:            instance.db,
+		actQueryCount: &td.actQueryCount,
 	}
 
 	errAppendDebug := func(frameErr string, err error, query string) {
