@@ -95,6 +95,12 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 			timezone = args[1]
 		}
 		return fmt.Sprintf("%s > CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz) AND %s < CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz)", column, timezone, timeRange.From.UTC().Format(time.RFC3339Nano), column, timezone, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
+	case "__timeTzFilter":
+		if len(args) == 0 {
+			return "", fmt.Errorf("missing time column argument for macro %v", name)
+		}
+		column := args[0]
+		return fmt.Sprintf("%s > '%s'::timestamp_tz AND %s < '%s'::timestamp_tz", column, timeRange.From.UTC().Format(time.RFC3339Nano), column, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeFrom":
 		return fmt.Sprintf("'%s'", timeRange.From.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeTo":
