@@ -169,13 +169,19 @@ The snowflake datasource is a data source backend plugin composed of both fronte
 
 ### Backend
 
-1. Build backend plugin binaries for Linux, Windows and Darwin:
+1. Install dependencies
+
+   ```bash
+   go mod tidy
+   ```
+
+2. Build backend plugin binaries for Linux, Windows and Darwin:
 
    ```bash
    mage -v
    ```
 
-2. List all available Mage targets for additional commands:
+3. List all available Mage targets for additional commands:
 
    ```bash
    mage -l

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.7.0
+
+### ⭐ Added
+- Add `$__timeTzFilter(column_name)` macro.
+
+### 🔨 Changed
+- Upgrade grafana-plugin-sdk-go to version v0.246.0.
+- Upgrade gosnowflake to version v1.11.1.
+
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@aryder-openai](https://github.com/ryder-openai)
+
 ## 1.6.1
 
 ### 🐞 Bug Fixes
