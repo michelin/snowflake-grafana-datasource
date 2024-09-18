@@ -5,6 +5,9 @@
 ### ⭐ Added
 - Add `$__timeTzFilter(column_name)` macro.
 
+### 🐞 Bug Fixes
+- Fix issue with multi-value query variables.
+
 ### 🔨 Changed
 - Upgrade grafana-plugin-sdk-go to version v0.246.0.
 - Upgrade gosnowflake to version v1.11.1.

@@ -102,6 +102,16 @@ For Time series query:
 
 ![Query editor](img/query.png)
 
+##### Query Variables
+
+You can use query variable in your query.<br/>
+Query variables are used to filter the data displayed in the dashboard.
+
+Sample query variable usage:
+```sql
+SELECT column FROM table WHERE column in ($variable)
+```
+
 ##### Layout of a query
 
 *Simple query*
