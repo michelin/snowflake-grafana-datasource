@@ -10,15 +10,8 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
     this.annotations = {};
   }
 
-  private format(value: any) {
-    if (Array.isArray(value)) {
-      return `'${value.join("','")}'`;
-    }
-    return value;
-  }
-
   applyTemplateVariables(query: SnowflakeQuery, scopedVars: ScopedVars): SnowflakeQuery {
-    query.queryText = getTemplateSrv().replace(query.queryText, scopedVars, this.format);
+    query.queryText = getTemplateSrv().replace(query.queryText, scopedVars);
     return query;
   }
 

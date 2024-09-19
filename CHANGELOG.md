@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1
+
+### 🐞 Bug Fixes
+- Use default variable format interpolation for query variables (see documentation).
+
 ## 1.7.0
 
 ### ⭐ Added

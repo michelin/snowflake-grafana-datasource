@@ -104,12 +104,39 @@ For Time series query:
 
 ##### Query Variables
 
-You can use query variable in your query.<br/>
-Query variables are used to filter the data displayed in the dashboard.
+You can use query variable in your Snowflake queries by using [variable syntax](https://grafana.com/docs/grafana/latest/dashboards/variables/variable-syntax/).<br/>
+You can also set the [interpolation format](https://grafana.com/docs/grafana/latest/dashboards/variables/variable-syntax/#general-syntax) in the variable.<br/>
 
-Sample query variable usage:
+Single-value variables usage:
 ```sql
-SELECT column FROM table WHERE column in ($variable)
+-- $variable = 'xxxxxxx'  
+SELECT column FROM table WHERE column = ${variable:sqlstring}
+-- Interpolation result
+SELECT column FROM table WHERE column = 'xxxxxxx'
+```
+
+Single-value variables with format usage:
+```sql
+-- $variable = 'xxxxxxx'       
+SELECT column FROM table WHERE column = ${variable:raw}
+-- nterpolation result
+SELECT column FROM table WHERE column = xxxxxxx
+```
+
+Multiple-value variables usage:
+```sql
+-- $variable = ['xxxxxxx','yyyyyy']        
+SELECT column FROM table WHERE column in (${variable:sqlstring})
+-- Interpolation result
+SELECT column FROM table WHERE column in ('xxxxxxx','yyyyyy')
+```
+
+Multiple-value variables with format usage:
+```sql
+-- $variable = ['xxxxxxx','yyyyyy']  
+SELECT column FROM table WHERE column in ${variable:regex}
+-- Interpolation result
+SELECT column FROM table WHERE column in (test1|test2)
 ```
 
 ##### Layout of a query
