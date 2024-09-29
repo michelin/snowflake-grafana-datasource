@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"net/url"
+
+	"github.com/allegro/bigcache/v3"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-
-	"net/url"
 )
 
 type DBDataResponse struct {
@@ -127,7 +128,8 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 }
 
 type instanceSettings struct {
-	db *sql.DB
+	db    *sql.DB
+	cache *bigcache.BigCache
 }
 
 func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
@@ -151,13 +153,19 @@ func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstan
 	db.SetMaxOpenConns(100)                                  //config.DSInfo.JsonData.MaxOpenConns)
 	db.SetMaxIdleConns(100)                                  //config.DSInfo.JsonData.MaxIdleConns)
 	db.SetConnMaxLifetime(time.Duration(3600) * time.Second) //time.Duration(14400) * time.Second) //time.Duration(config.DSInfo.JsonData.ConnMaxLifetime) * time.Second)
-	return &instanceSettings{db: db}, nil
+	cache, _ := bigcache.New(context.Background(), bigcache.DefaultConfig(60*time.Minute))
+	return &instanceSettings{db: db, cache: cache}, nil
 }
 
 func (s *instanceSettings) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
 	if s.db != nil {
 		if err := s.db.Close(); err != nil {
+			log.DefaultLogger.Error("Failed to dispose db", "error", err)
+		}
+	}
+	if s.cache != nil {
+		if err := s.cache.Close(); err != nil {
 			log.DefaultLogger.Error("Failed to dispose db", "error", err)
 		}
 	}

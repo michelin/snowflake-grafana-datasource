@@ -102,7 +102,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 	case "__timeRoundFrom":
 		//Rounds timestamp to the last 15min by default. First Argument could be passed to have a variable rounding in Minutes.
 		timeSpan := 15
-		if len(args) == 1 {
+		if len(args) == 1 && args[0] != "" {
 			if _, err := strconv.Atoi(args[0]); err == nil {
 				timeSpan, _ = strconv.Atoi(args[0])
 			} else {
@@ -112,7 +112,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		return fmt.Sprintf("'%s'", timeRange.From.UTC().Truncate(time.Minute*time.Duration(timeSpan)).Format(time.RFC3339)), nil
 	case "__timeRoundTo":
 		timeSpan := 15
-		if len(args) == 1 {
+		if len(args) == 1 && args[0] != "" {
 			if _, err := strconv.Atoi(args[0]); err == nil {
 				timeSpan, _ = strconv.Atoi(args[0])
 			} else {
