@@ -72,8 +72,9 @@ Macro example                                          | Description
 ------------------------------------------------------ | -------------
 `$__time(dateColumn)`                                  | Will be replaced by an expression to convert to a UNIX timestamp and rename the column to `time`. For example, *TRY_TO_TIMESTAMP_NTZ(dateColumn) as time*
 `$__timeEpoch(dateColumn)`                             | Will be replaced by an expression to convert to a UNIX timestamp and rename the column to `time`.
-`$__timeFilter(dateColumn)`                            | Will be replaced by a time range filter using the specified column name. For example, *time > CONVERT_TIMEZONE('UTC', 'UTC', '2023-12-13T23:21:44Z'::timestamp_ntz) AND time < CONVERT_TIMEZONE('UTC', 'UTC', '2023-12-13T23:22:44Z'::timestamp_ntz)*
-`$__timeFilter(dateColumn, timezone)`                  | Will be replaced by a time range filter using the specified column name. For example, *time > CONVERT_TIMEZONE('UTC', 'America/New_York', '2023-12-13T23:22:46Z'::timestamp_ntz) AND time < CONVERT_TIMEZONE('UTC', 'America/New_York', '2023-12-13T23:23:46Z'::timestamp_ntz)*
+`$__timeFilter(dateColumn)`                            | Will be replaced by a time range filter using the specified column name, which is expected to be a timestamp without time zone. For example, *time > CONVERT_TIMEZONE('UTC', 'UTC', '2023-12-13T23:21:44Z'::timestamp_ntz) AND time < CONVERT_TIMEZONE('UTC', 'UTC', '2023-12-13T23:22:44Z'::timestamp_ntz)*
+`$__timeFilter(dateColumn, timezone)`                  | Will be replaced by a time range filter using the specified column name, which is expected to be a timestamp without time zone. For example, *time > CONVERT_TIMEZONE('UTC', 'America/New_York', '2023-12-13T23:22:46Z'::timestamp_ntz) AND time < CONVERT_TIMEZONE('UTC', 'America/New_York', '2023-12-13T23:23:46Z'::timestamp_ntz)*
+`$__timeTzFilter(dateColumn)`                          | Will be replaced by a time range filter using the specified column name, which is expected to be a timestamp with time zone. For example, *time > '2023-12-13T23:21:44Z'::timestamp_tz AND time < '2023-12-13T23:22:44Z'::timestamp_tz*
 `$__timeFrom()`                                        | Will be replaced by the start of the currently active time selection. For example, *1494410783*
 `$__timeTo()`                                          | Will be replaced by the end of the currently active time selection. For example, *1494410983*
 `$__timeGroup(dateColumn,'5m')`                        | Will be replaced by an expression usable in GROUP BY clause. For example, *floor(extract(epoch from dateColumn)/120)*120*
@@ -100,6 +101,43 @@ For Time series query:
 * A numerical column must be included.
 
 ![Query editor](img/query.png)
+
+##### Query Variables
+
+You can use query variable in your Snowflake queries by using [variable syntax](https://grafana.com/docs/grafana/latest/dashboards/variables/variable-syntax/).<br/>
+You can also set the [interpolation format](https://grafana.com/docs/grafana/latest/dashboards/variables/variable-syntax/#general-syntax) in the variable.<br/>
+
+Single-value variables usage:
+```sql
+-- $variable = 'xxxxxxx'  
+SELECT column FROM table WHERE column = ${variable:sqlstring}
+-- Interpolation result
+SELECT column FROM table WHERE column = 'xxxxxxx'
+```
+
+Single-value variables with format usage:
+```sql
+-- $variable = 'xxxxxxx'       
+SELECT column FROM table WHERE column = ${variable:raw}
+-- nterpolation result
+SELECT column FROM table WHERE column = xxxxxxx
+```
+
+Multiple-value variables usage:
+```sql
+-- $variable = ['xxxxxxx','yyyyyy']        
+SELECT column FROM table WHERE column in (${variable:sqlstring})
+-- Interpolation result
+SELECT column FROM table WHERE column in ('xxxxxxx','yyyyyy')
+```
+
+Multiple-value variables with format usage:
+```sql
+-- $variable = ['xxxxxxx','yyyyyy']  
+SELECT column FROM table WHERE column in ${variable:regex}
+-- Interpolation result
+SELECT column FROM table WHERE column in (test1|test2)
+```
 
 ##### Layout of a query
 
@@ -168,13 +206,19 @@ The snowflake datasource is a data source backend plugin composed of both fronte
 
 ### Backend
 
-1. Build backend plugin binaries for Linux, Windows and Darwin:
+1. Install dependencies
+
+   ```bash
+   go mod tidy
+   ```
+
+2. Build backend plugin binaries for Linux, Windows and Darwin:
 
    ```bash
    mage -v
    ```
 
-2. List all available Mage targets for additional commands:
+3. List all available Mage targets for additional commands:
 
    ```bash
    mage -l
