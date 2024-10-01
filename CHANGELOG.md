@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0
+
+### 🐞 Bug Fixes
+- Avoid interpolation of Snowflake SYSTEM functions.
+- Improve error handling when specific macro parameters are left empty.
+
+### 🔨 Changed
+- Upgrade grafana-plugin-sdk-go to version v0.251.0.
+
 ## 1.7.1
 
 ### 🐞 Bug Fixes

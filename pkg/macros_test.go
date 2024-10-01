@@ -29,17 +29,21 @@ func TestEvaluateMacro(t *testing.T) {
 		fillValue float64
 	}{
 		// __time
-		{name: "__time", args: []string{"col"}, response: "TRY_TO_TIMESTAMP_NTZ(col) AS time"},
 		{name: "__time", args: []string{}, err: "missing time column argument for macro __time"},
+		{name: "__time", args: []string{""}, err: "missing time column argument for macro __time"},
+		{name: "__time", args: []string{"col"}, response: "TRY_TO_TIMESTAMP_NTZ(col) AS time"},
 		// __timeEpoch
 		{name: "__timeEpoch", args: []string{}, err: "missing time column argument for macro __timeEpoch"},
+		{name: "__timeEpoch", args: []string{""}, err: "missing time column argument for macro __timeEpoch"},
 		{name: "__timeEpoch", args: []string{"col"}, response: "extract(epoch from col) as time"},
 		// __timeFilter
 		{name: "__timeFilter", args: []string{}, err: "missing time column argument for macro __timeFilter"},
+		{name: "__timeFilter", args: []string{""}, err: "missing time column argument for macro __timeFilter"},
 		{name: "__timeFilter", args: []string{"col"}, config: configStruct, response: "col > CONVERT_TIMEZONE('UTC', 'UTC', '" + timeRange.From.UTC().Format(time.RFC3339Nano) + "'::timestamp_ntz) AND col < CONVERT_TIMEZONE('UTC', 'UTC', '" + timeRange.To.UTC().Format(time.RFC3339Nano) + "'::timestamp_ntz)"},
 		{name: "__timeFilter", args: []string{"col", "'America/New_York'"}, config: configStruct, response: "col > CONVERT_TIMEZONE('UTC', 'America/New_York', '" + timeRange.From.UTC().Format(time.RFC3339Nano) + "'::timestamp_ntz) AND col < CONVERT_TIMEZONE('UTC', 'America/New_York', '" + timeRange.To.UTC().Format(time.RFC3339Nano) + "'::timestamp_ntz)"},
 		// __timeTzFilter
 		{name: "__timeTzFilter", args: []string{}, err: "missing time column argument for macro __timeTzFilter"},
+		{name: "__timeTzFilter", args: []string{""}, err: "missing time column argument for macro __timeTzFilter"},
 		{name: "__timeTzFilter", args: []string{"col"}, config: configStruct, response: "col > '" + timeRange.From.UTC().Format(time.RFC3339Nano) + "'::timestamp_tz AND col < '" + timeRange.To.UTC().Format(time.RFC3339Nano) + "'::timestamp_tz"},
 		// __timeFrom
 		{name: "__timeFrom", args: []string{}, config: configStruct, response: "'" + timeRange.From.UTC().Format(time.RFC3339Nano) + "'"},
@@ -63,9 +67,11 @@ func TestEvaluateMacro(t *testing.T) {
 		{name: "__timeGroupAlias", args: []string{"col", "1d", "test"}, err: "error parsing fill value test"},
 		// __unixEpochFilter
 		{name: "__unixEpochFilter", args: []string{}, err: "missing time column argument for macro __unixEpochFilter"},
+		{name: "__unixEpochFilter", args: []string{""}, err: "missing time column argument for macro __unixEpochFilter"},
 		{name: "__unixEpochFilter", args: []string{"col"}, response: "col >= -62135596800 AND col <= -62135596800"},
 		// __unixEpochNanoFilter
 		{name: "__unixEpochNanoFilter", args: []string{}, err: "missing time column argument for macro __unixEpochNanoFilter"},
+		{name: "__unixEpochNanoFilter", args: []string{""}, err: "missing time column argument for macro __unixEpochNanoFilter"},
 		{name: "__unixEpochNanoFilter", args: []string{"col"}, response: "col >= -6795364578871345152 AND col <= -6795364578871345152"},
 		// __unixEpochNanoFrom
 		{name: "__unixEpochNanoFrom", args: []string{}, response: "-6795364578871345152"},
@@ -105,6 +111,65 @@ func TestEvaluateMacro(t *testing.T) {
 			} else {
 				require.Error(t, err, "input %s", tc.name)
 				require.Equal(t, tc.err, err.Error())
+			}
+		})
+	}
+}
+
+func TestInterpolate(t *testing.T) {
+	tests := []struct {
+		name          string
+		configStruct  *queryConfigStruct
+		expectedSQL   string
+		expectedError string
+	}{
+		{
+			name: "valid macro",
+			configStruct: &queryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeFilter(col)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE col > CONVERT_TIMEZONE('UTC', 'UTC', '2020-01-01T00:00:00Z'::timestamp_ntz) AND col < CONVERT_TIMEZONE('UTC', 'UTC', '2020-01-02T00:00:00Z'::timestamp_ntz)",
+			expectedError: "",
+		},
+		{
+			name: "missing time column argument",
+			configStruct: &queryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeFilter()",
+			},
+			expectedSQL:   "",
+			expectedError: "missing time column argument for macro __timeFilter",
+		},
+		{
+			name: "valid snowflake system macro",
+			configStruct: &queryConfigStruct{
+				RawQuery: "SELECT SYSTEM$TYPEOF('a')",
+			},
+			expectedSQL:   "SELECT SYSTEM$TYPEOF('a')",
+			expectedError: "",
+		},
+		{
+			name: "unknown macro",
+			configStruct: &queryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__unknownMacro(col)",
+			},
+			expectedSQL:   "",
+			expectedError: "unknown macro \"__unknownMacro\"",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sql, err := Interpolate(tt.configStruct)
+			if tt.expectedError == "" {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedSQL, sql)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, tt.expectedError, err.Error())
 			}
 		})
 	}

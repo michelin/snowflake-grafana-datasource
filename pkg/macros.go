@@ -34,6 +34,10 @@ func Interpolate(configStruct *queryConfigStruct) (string, error) {
 	var macroError error
 
 	sql := ReplaceAllStringSubmatchFunc(rExp, configStruct.RawQuery, func(groups []string) string {
+		// Don't try to interpolate Snowflake macros SYSTEM$xxxxx
+		if strings.Contains(configStruct.RawQuery, "SYSTEM"+groups[0]) {
+			return groups[0]
+		}
 		args := strings.Split(groups[2], ",")
 		for i, arg := range args {
 			args[i] = strings.Trim(arg, " ")
@@ -76,17 +80,17 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 	timeRange := configStruct.TimeRange
 	switch name {
 	case "__time":
-		if len(args) == 0 {
+		if len(args) == 0 || args[0] == "" {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
 		return fmt.Sprintf("TRY_TO_TIMESTAMP_NTZ(%s) AS time", args[0]), nil
 	case "__timeEpoch":
-		if len(args) == 0 {
+		if len(args) == 0 || args[0] == "" {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
 		return fmt.Sprintf("extract(epoch from %s) as time", args[0]), nil
 	case "__timeFilter":
-		if len(args) == 0 {
+		if len(args) == 0 || args[0] == "" {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
 		column := args[0]
@@ -96,7 +100,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		}
 		return fmt.Sprintf("%s > CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz) AND %s < CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz)", column, timezone, timeRange.From.UTC().Format(time.RFC3339Nano), column, timezone, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeTzFilter":
-		if len(args) == 0 {
+		if len(args) == 0 || args[0] == "" {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
 		column := args[0]
@@ -128,12 +132,12 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		}
 		return "", err
 	case "__unixEpochFilter":
-		if len(args) == 0 {
+		if len(args) == 0 || args[0] == "" {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
 		return fmt.Sprintf("%s >= %d AND %s <= %d", args[0], timeRange.From.UTC().Unix(), args[0], timeRange.To.UTC().Unix()), nil
 	case "__unixEpochNanoFilter":
-		if len(args) == 0 {
+		if len(args) == 0 || args[0] == "" {
 			return "", fmt.Errorf("missing time column argument for macro %v", name)
 		}
 		return fmt.Sprintf("%s >= %d AND %s <= %d", args[0], timeRange.From.UTC().UnixNano(), args[0], timeRange.To.UTC().UnixNano()), nil
