@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 func TestContainsIgnoreCase(t *testing.T) {
@@ -89,4 +91,44 @@ func TestPreviousRowWithNonEmptyRowsAndIndexGreaterThanZero(t *testing.T) {
 	}
 	result := previousRow(rows, 2)
 	require.Equal(t, rows[1], result)
+}
+
+func TestAppendsStringValueToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*string{}))
+	value := "testString"
+	insertFrameField(frame, value, 0)
+	require.Equal(t, &value, frame.Fields[0].At(0))
+}
+
+func TestAppendsFloat64ValueToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*float64{}))
+	value := float64(123.45)
+	insertFrameField(frame, value, 0)
+	require.Equal(t, &value, frame.Fields[0].At(0))
+}
+
+func TestAppendsInt64ValueToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*int64{}))
+	value := int64(123)
+	insertFrameField(frame, value, 0)
+	require.Equal(t, &value, frame.Fields[0].At(0))
+}
+
+func TestAppendsBoolValueToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*bool{}))
+	value := true
+	insertFrameField(frame, value, 0)
+	require.Equal(t, &value, frame.Fields[0].At(0))
+}
+
+func TestAppendsTimeValueToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*time.Time{}))
+	value := time.Now()
+	insertFrameField(frame, value, 0)
+	require.Equal(t, &value, frame.Fields[0].At(0))
 }

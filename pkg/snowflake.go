@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -34,6 +35,7 @@ type SnowflakeDatasource struct {
 	// of datasource instances in plugins. It's not a requirements
 	// but a best practice that we recommend that you follow.
 	im instancemgmt.InstanceManager
+	db *sql.DB
 }
 
 // QueryData handles multiple queries and returns multiple responses.

@@ -6,6 +6,21 @@ import (
 	"testing"
 )
 
+func TestIsTimeSeriesType_TrueWhenQueryTypeIsTimeSeries(t *testing.T) {
+	qc := queryConfigStruct{QueryType: "time series"}
+	assert.True(t, qc.isTimeSeriesType())
+}
+
+func TestIsTimeSeriesType_FalseWhenQueryTypeIsNotTimeSeries(t *testing.T) {
+	qc := queryConfigStruct{QueryType: "table"}
+	assert.False(t, qc.isTimeSeriesType())
+}
+
+func TestIsTimeSeriesType_FalseWhenQueryTypeIsEmpty(t *testing.T) {
+	qc := queryConfigStruct{QueryType: ""}
+	assert.False(t, qc.isTimeSeriesType())
+}
+
 func TestMapFillMode(t *testing.T) {
 	assert.Equal(t, data.FillModeValue, mapFillMode("value"))
 	assert.Equal(t, data.FillModeNull, mapFillMode("null"))

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/require"
@@ -76,5 +77,19 @@ func TestGetConnectionString(t *testing.T) {
 	t.Run("with string to escape", func(t *testing.T) {
 		connectionString := getConnectionString(&config, "pa$$s&", "")
 		require.Equal(t, "user%40name:pa$$s&@acc@ount?database=dat%40base&role=ro%40le&schema=sch%40ema&warehouse=ware%40house&conf=xxx", connectionString)
+	})
+}
+
+func TestCreatesNewDataSourceInstance(t *testing.T) {
+	settings := backend.DataSourceInstanceSettings{}
+	instance, err := newDataSourceInstance(context.Background(), settings)
+	require.NoError(t, err)
+	require.NotNil(t, instance)
+}
+
+func TestDisposesInstanceWithoutError(t *testing.T) {
+	instance := &instanceSettings{}
+	require.NotPanics(t, func() {
+		instance.Dispose()
 	})
 }

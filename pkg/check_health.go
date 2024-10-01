@@ -19,16 +19,20 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 	if result != nil {
 		return result, nil
 	}
-	db, err := sql.Open("snowflake", connectionString)
-	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Connection issue : %s", err),
-		}, nil
+	// Use the existing db field instead of opening a new connection
+	if td.db == nil {
+		var err error
+		td.db, err = sql.Open("snowflake", connectionString)
+		if err != nil {
+			return &backend.CheckHealthResult{
+				Status:  backend.HealthStatusError,
+				Message: fmt.Sprintf("Connection issue : %s", err),
+			}, nil
+		}
 	}
-	defer db.Close()
+	defer td.db.Close()
 
-	row, err := db.QueryContext(ctx, "SELECT 1")
+	row, err := td.db.QueryContext(ctx, "SELECT 1")
 	if err != nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
