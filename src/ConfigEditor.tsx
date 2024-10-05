@@ -1,13 +1,13 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { LegacyForms } from '@grafana/ui';
+import {  InlineField, InlineSwitch, SecretInput, Input, FieldSet } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
 
-const { SecretFormField, FormField, Switch } = LegacyForms;
 
-interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> {}
 
-interface State {}
+interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> { }
+
+interface State { }
 
 export class ConfigEditor extends PureComponent<Props, State> {
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -151,127 +151,146 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const { options } = this.props;
     const { jsonData, secureJsonFields } = options;
     const secureJsonData = (options.secureJsonData || {}) as SnowflakeSecureOptions;
-
     return (
-      <div className="gf-form-group">
+      <FieldSet>
         <h3 className="page-heading">Connection</h3>
-
-        <div className="gf-form">
-          <FormField
-            label="Account name"
-            labelWidth={10}
-            inputWidth={30}
-            onChange={this.onAccountChange}
-            tooltip="All access to Snowflake is either through your account name (provided by Snowflake) or a URL that uses the following format: `xxxxx.snowflakecomputing.com`"
-            value={jsonData.account || ''}
+        <InlineField
+          labelWidth={30}
+          label="Account name"
+          tooltip="All access to Snowflake is either through your account name (provided by Snowflake) or a URL that uses the following format: `xxxxx.snowflakecomputing.com`" >
+          <Input
             placeholder="xxxxxx.snowflakecomputing.com"
+            type="string"
+            className="width-30"
+            value={jsonData.account || ''}
+            onChange={this.onAccountChange}
           />
-        </div>
-
-        <div className="gf-form">
-          <FormField
-            label="Username"
-            labelWidth={10}
-            inputWidth={20}
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="Username"
+          tooltip="" >
+          <Input
+            placeholder="Username"
+            type="string"
+            className="width-20"
             onChange={this.onUsernameChange}
             value={jsonData.username || ''}
-            placeholder="Username"
           />
-        </div>
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="basic or key pair authentication"
+          tooltip="" >
+          <InlineSwitch
+                name="keyorpairauth"
+                required
+                value={jsonData.basicAuth ?? false}
+                autoComplete="off"
+                onChange={this.onAuthenticationChange}
+              />
+        </InlineField>
 
-        <div className="gf-form">
-          <Switch
-            label="basic or key pair authentication"
-            checked={jsonData.basicAuth}
-            onChange={this.onAuthenticationChange}
-          />
-        </div>
-        <div className="gf-form">
-          {!jsonData.basicAuth && (
-            <SecretFormField
+        {!jsonData.basicAuth && (
+          <InlineField
+            labelWidth={30}
+            label="Password"
+            tooltip="" >
+            <SecretInput
+              type="string"
+              className="width-20"
+              placeholder="password"
               isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
               value={secureJsonData.password || ''}
-              label="Password"
-              placeholder="password"
-              labelWidth={10}
-              inputWidth={20}
               onReset={this.onResetPassword}
               onChange={this.onPasswordChange}
             />
-          )}
-          {jsonData.basicAuth && (
-            <SecretFormField
+          </InlineField>
+        )}
+        {jsonData.basicAuth && (
+          <InlineField
+            labelWidth={30}
+            label="Private key"
+            tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')" >
+            <SecretInput
+              type="string"
+              className="width-20"
+              placeholder="MIIB..."
               isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
               value={secureJsonData.privateKey || ''}
-              tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
-              label="Private key"
-              placeholder="MIIB..."
-              labelWidth={10}
-              inputWidth={20}
               onReset={this.onResetPrivateKey}
               onChange={this.onPrivateKeyChange}
             />
-          )}
-        </div>
-        <div className="gf-form">
-          <FormField
-            label="Role"
-            labelWidth={10}
-            inputWidth={20}
+          </InlineField>
+        )}
+        <InlineField
+          labelWidth={30}
+          label="Role"
+          tooltip="" >
+          <Input
+            type="string"
+            className="width-20"
             onChange={this.onRoleChange}
             value={jsonData.role || ''}
             placeholder="Role"
           />
-        </div>
+        </InlineField>
+       
         <br />
         <h3 className="page-heading">Parameter configuration</h3>
-
-        <div className="gf-form">
-          <FormField
-            label="Warehouse"
-            labelWidth={10}
-            inputWidth={20}
+        <InlineField
+          labelWidth={30}
+          label="Warehouse"
+          tooltip="" >
+          <Input
+            type="string"
+            className="width-20"
             onChange={this.onWarehouseChange}
             value={jsonData.warehouse || ''}
             placeholder="Default warehouse"
           />
-        </div>
-
-        <div className="gf-form">
-          <FormField
-            label="Database"
-            labelWidth={10}
-            inputWidth={20}
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="Database"
+          tooltip="" >
+          <Input
+            type="string"
+            className="width-20"
             onChange={this.onDatabaseChange}
             value={jsonData.database || ''}
             placeholder="Default database"
           />
-        </div>
-
-        <div className="gf-form">
-          <FormField
-            label="Schema"
-            labelWidth={10}
-            inputWidth={20}
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="Schema"
+          tooltip="" >
+          <Input
+            type="string"
+            className="width-20"
             onChange={this.onSchemaChange}
             value={jsonData.schema || ''}
             placeholder="Default Schema"
           />
-        </div>
+        </InlineField>
         <br />
         <h3 className="page-heading">Session configuration</h3>
-
-        <div className="gf-form">
-          <FormField
-            label="Extra options"
-            labelWidth={10}
-            inputWidth={30}
+        <InlineField
+          labelWidth={30}
+          label="Extra options"
+          tooltip="" >
+          <Input
+            type="string"
+            className="width-30"
             onChange={this.onExtraOptionChange}
             value={jsonData.extraConfig || ''}
             placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
           />
-        </div>
-      </div>
-    );
+        </InlineField>
+
+      </FieldSet >
+    )
+    
   }
 }
