@@ -49,6 +49,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	token := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["token"]
 
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
@@ -60,7 +61,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey)
+		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey, token)
 	}
 
 	return response, nil
@@ -85,7 +86,7 @@ func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, erro
 	return config, nil
 }
 
-func getConnectionString(config *pluginConfig, password string, privateKey string) string {
+func getConnectionString(config *pluginConfig, password string, privateKey string, token string) string {
 	params := url.Values{}
 	params.Add("role", config.Role)
 	params.Add("warehouse", config.Warehouse)
@@ -96,12 +97,14 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 	if len(privateKey) != 0 {
 		params.Add("authenticator", "SNOWFLAKE_JWT")
 		params.Add("privateKey", privateKey)
-		userPass = url.User(config.Username).String()
+		userPass = url.User(config.Username).String() + "@"
+	} else if len(token) != 0 {
+		params.Add("authenticator", "oauth")
+		params.Add("token", token)
 	} else {
-		userPass = url.UserPassword(config.Username, password).String()
+		userPass = url.UserPassword(config.Username, password).String() + "@"
 	}
-
-	return fmt.Sprintf("%s@%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
+	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }
 
 type instanceSettings struct {

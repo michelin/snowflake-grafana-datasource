@@ -2,11 +2,16 @@
 
 ## 1.8.0
 
+### ⭐ Added
+- Add support of OAuth authentication.
+
 ### 🐞 Bug Fixes
 - Avoid interpolation of Snowflake SYSTEM functions.
 - Improve error handling when specific macro parameters are left empty.
 
 ### 🔨 Changed
+- Rewrite the datasource configuration UI (ease authentication selection).
+- Support non encoded private key in the datasource configuration.
 - Improve unit tests coverage.
 - Upgrade grafana-plugin-sdk-go to version v0.251.0.
 

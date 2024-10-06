@@ -22,15 +22,6 @@ func TestIsTimeSeriesType_FalseWhenQueryTypeIsEmpty(t *testing.T) {
 	assert.False(t, qc.isTimeSeriesType())
 }
 
-// Helper functions to create pointers
-func timePtr(t time.Time) *time.Time {
-	return &t
-}
-
-func float64Ptr(f float64) *float64 {
-	return &f
-}
-
 func TestMapFillMode(t *testing.T) {
 	assert.Equal(t, data.FillModeValue, mapFillMode("value"))
 	assert.Equal(t, data.FillModeNull, mapFillMode("null"))

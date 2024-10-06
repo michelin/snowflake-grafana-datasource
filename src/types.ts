@@ -28,7 +28,9 @@ export interface SnowflakeOptions extends DataSourceJsonData {
   database?: string;
   schema?: string;
   extraConfig?: string;
+  /** @deprecated use authMethod */
   basicAuth: boolean;
+  authMethod: string;
 }
 
 /**
@@ -37,4 +39,5 @@ export interface SnowflakeOptions extends DataSourceJsonData {
 export interface SnowflakeSecureOptions {
   password?: string;
   privateKey?: string;
+  token?: string;
 }
