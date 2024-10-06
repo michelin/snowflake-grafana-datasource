@@ -4,11 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
+	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -25,6 +29,20 @@ func (qc *queryConfigStruct) isTimeSeriesType() bool {
 	return qc.QueryType == timeSeriesType
 }
 
+type queryCounter int32
+
+func (c *queryCounter) inc() int32 {
+	return atomic.AddInt32((*int32)(c), 1)
+}
+
+func (c *queryCounter) dec() int32 {
+	return atomic.AddInt32((*int32)(c), -1)
+}
+
+func (c *queryCounter) get() int32 {
+	return atomic.LoadInt32((*int32)(c))
+}
+
 type queryConfigStruct struct {
 	FinalQuery    string
 	QueryType     string
@@ -35,6 +53,9 @@ type queryConfigStruct struct {
 	MaxDataPoints int64
 	FillMode      string
 	FillValue     float64
+	db            *sql.DB
+	config        *pluginConfig
+	actQueryCount *queryCounter
 }
 
 // type
@@ -58,22 +79,26 @@ type queryModel struct {
 	FillMode    string   `json:"fillMode"`
 }
 
-func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
+func (qc *queryConfigStruct) fetchData(ctx context.Context) (result DataQueryResult, err error) {
+	qc.actQueryCount.inc()
 	// Custom configuration to reduce memory footprint
 	sf.MaxChunkDownloadWorkers = 2
 	sf.CustomJSONDecoderEnabled = true
 
-	connectionString := getConnectionString(config, password, privateKey)
+	start := time.Now()
+	stats := qc.db.Stats()
+	defer func() {
+		qc.actQueryCount.dec()
+		duration := time.Since(start)
+		log.DefaultLogger.Info(fmt.Sprintf("%+v - %s - %d", stats, duration, int(qc.actQueryCount.get())))
 
-	db, err := sql.Open("snowflake", connectionString)
-	if err != nil {
-		log.DefaultLogger.Error("Could not open database", "err", err)
+	}()
+	if int(qc.config.IntMaxQueuedQueries) > 0 && int(qc.actQueryCount.get()) >= (int(qc.config.IntMaxQueuedQueries)) {
+		err := errors.New("too many queries in queue. Check Snowflake connectivity or increase MaxQueuedQeries count")
+		log.DefaultLogger.Error("Poolsize exceeded", "query", qc.FinalQuery, "err", err)
 		return result, err
 	}
-	defer db.Close()
-
-	log.DefaultLogger.Info("Query", "finalQuery", qc.FinalQuery)
-	rows, err := db.QueryContext(ctx, qc.FinalQuery)
+	rows, err := qc.db.QueryContext(ctx, qc.FinalQuery)
 	if err != nil {
 		if strings.Contains(err.Error(), "000605") {
 			log.DefaultLogger.Info("Query got cancelled", "query", qc.FinalQuery, "err", err)
@@ -83,7 +108,11 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig
 		log.DefaultLogger.Error("Could not execute query", "query", qc.FinalQuery, "err", err)
 		return result, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.DefaultLogger.Warn("Failed to close rows", "err", err)
+		}
+	}()
 
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
@@ -185,19 +214,39 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch chan DBDataResponse, instance *instanceSettings, dataQuery backend.DataQuery) {
+	defer wg.Done()
+	queryResult := DBDataResponse{
+		dataResponse: backend.DataResponse{},
+		refID:        dataQuery.RefID,
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Error("ExecuteQuery panic", "error", r, "stack", string(debug.Stack()))
+			if theErr, ok := r.(error); ok {
+				queryResult.dataResponse.Error = theErr
+			} else if theErrString, ok := r.(string); ok {
+				queryResult.dataResponse.Error = fmt.Errorf(theErrString)
+			} else {
+				//queryResult.dataResponse.Error = fmt.Errorf("unexpected error - %s", td.userError)
+			}
+			ch <- queryResult
+		}
+	}()
+
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
-		log.DefaultLogger.Error("Could not unmarshal query", "err", err)
-		response.Error = err
-		return response
+		//log.DefaultLogger.Error("Could not unmarshal query", "err", err)
+		//queryResult.dataResponse.Error = err
+		panic("Could not unmarshal query")
 	}
 
 	if qm.QueryText == "" {
-		log.DefaultLogger.Error("SQL query must no be empty")
-		response.Error = fmt.Errorf("SQL query must no be empty")
-		return response
+		//log.DefaultLogger.Error("SQL query must no be empty")
+		//queryResult.dataResponse.Error = fmt.Errorf("SQL query must no be empty")
+		panic("Query model property rawSql should not be empty at this point")
 	}
 
 	queryConfig := queryConfigStruct{
@@ -209,32 +258,44 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		Interval:      dataQuery.Interval,
 		TimeRange:     dataQuery.TimeRange,
 		MaxDataPoints: dataQuery.MaxDataPoints,
+		db:            instance.db,
+		config:        instance.config,
+		actQueryCount: &td.actQueryCount,
 	}
 
-	log.DefaultLogger.Info("Query config", "config", qm)
+	errAppendDebug := func(frameErr string, err error, query string) {
+		var emptyFrame data.Frame
+		emptyFrame.SetMeta(&data.FrameMeta{
+			ExecutedQueryString: query,
+		})
+		queryResult.dataResponse.Error = fmt.Errorf("%s: %w", frameErr, err)
+		queryResult.dataResponse.Frames = data.Frames{&emptyFrame}
+		ch <- queryResult
+	}
 
 	// Apply macros
 	queryConfig.FinalQuery, err = Interpolate(&queryConfig)
 	if err != nil {
-		response.Error = err
-		return response
+		errAppendDebug("interpolation failed", err, queryConfig.FinalQuery)
+		return
 	}
 
 	// Remove final semi column
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
 	frame := data.NewFrame("")
-	dataResponse, err := queryConfig.fetchData(ctx, &config, password, privateKey)
+	dataResponse, err := queryConfig.fetchData(ctx)
 	if err != nil {
-		response.Error = err
-		return response
+		errAppendDebug("db query error", err, queryConfig.FinalQuery)
+		return
 	}
 	log.DefaultLogger.Debug("Response", "data", dataResponse)
 	for _, table := range dataResponse.Tables {
 		timeColumnIndex := -1
 		for i, column := range table.Columns {
 			if err != nil {
-				return backend.DataResponse{}
+				errAppendDebug("db query error", err, queryConfig.FinalQuery)
+				return
 			}
 			// Check time column
 			if queryConfig.isTimeSeriesType() && equalsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
@@ -294,9 +355,8 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		ExecutedQueryString: queryConfig.FinalQuery,
 	}
 
-	response.Frames = append(response.Frames, frame)
-
-	return response
+	queryResult.dataResponse.Frames = data.Frames{frame}
+	ch <- queryResult
 }
 
 func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryConfigStruct, dataResponse DataQueryResult, err error) *data.Frame {

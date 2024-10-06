@@ -10,6 +10,19 @@ interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> { }
 interface State { }
 
 export class ConfigEditor extends PureComponent<Props, State> {
+  componentDidMount() {
+    const { onOptionsChange, options } = this.props;
+    if (options.jsonData.maxOpenConnections === ""){
+      const jsonData = {
+        ...options.jsonData,
+        maxOpenConnections: "100",
+        maxQueuedQueries:"400",
+        connectionLifetime: "60",
+        
+      };
+      onOptionsChange({ ...options, jsonData });
+    }
+  }
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
 
@@ -76,11 +89,11 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({ ...options, jsonData });
   };
 
-  onAuthenticationChange = (event: React.SyntheticEvent<HTMLInputElement>) => {
+  onAuthenticationChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     const jsonData = {
       ...options.jsonData,
-      basicAuth: (event.target as HTMLInputElement).checked,
+      basicAuth: event.target.checked,
     };
     onOptionsChange({ ...options, jsonData });
   };
@@ -145,6 +158,31 @@ export class ConfigEditor extends PureComponent<Props, State> {
         privateKey: '',
       },
     });
+  };
+
+  onMaxOpenConnectionsChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxOpenConnections: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onMaxQueuedQueriesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxQueuedQueries: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onConnectionLifetimeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      conectionLifetime: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
   };
 
   render() {
@@ -288,7 +326,44 @@ export class ConfigEditor extends PureComponent<Props, State> {
             placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
           />
         </InlineField>
-
+        <br />
+        <h3 className="page-heading">Connection Pool configuration</h3>
+        <InlineField
+          labelWidth={30}
+          label="max. open Connections"
+          tooltip="How many connections will be opend from the datasource to snowflake (default: 100)" >
+          <Input
+            type="number"
+            className="width-20"
+            onChange={this.onMaxOpenConnectionsChange}
+            value={jsonData.maxOpenConnections || '100'}
+            placeholder="100"
+          />
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="max. queued Queries"
+          tooltip='How many queries will be put into the query queue. This should be higher as "max. open Connections" when more queries as set are waiting to be executed a "too many open queries" error will be thrown. (default: 400 | 0 = no limit)' >
+          <Input
+            type="number"
+            className="width-20"
+            onChange={this.onMaxQueuedQueriesChange}
+            value={jsonData.maxQueuedQueries || '400'}
+            placeholder="400"
+          />
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="Connection lifetime [min]"
+          tooltip="How long open connections are hold to be reused in minutes. (default=60 | 0=never close)" >
+          <Input
+            type="number"
+            className="width-20"
+            onChange={this.onConnectionLifetimeChange}
+            value={jsonData.connectionLifetime || '60'}
+            placeholder="60"
+          />
+        </InlineField>
       </FieldSet >
     )
     

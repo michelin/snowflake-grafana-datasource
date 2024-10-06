@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -15,18 +14,12 @@ import (
 // a datasource is working as expected.
 func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 
-	connectionString, result := createAndValidationConnectionString(req)
-	if result != nil {
-		return result, nil
-	}
-	db, err := sql.Open("snowflake", connectionString)
+	i, err := td.im.Get(ctx, req.PluginContext)
 	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Connection issue : %s", err),
-		}, nil
+		return nil, err
 	}
-	defer db.Close()
+	instance := i.(*instanceSettings)
+	db := instance.db
 
 	row, err := db.QueryContext(ctx, "SELECT 1")
 	if err != nil {
