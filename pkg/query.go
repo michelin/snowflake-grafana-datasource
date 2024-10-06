@@ -346,7 +346,11 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, len(table.Rows)))
 	}
 	if queryConfig.isTimeSeriesType() {
-		frame = td.longToWide(frame, queryConfig, dataResponse, err)
+		frame, err = td.longToWide(frame, queryConfig, dataResponse)
+		if err != nil {
+			response.Error = err
+			return response
+		}
 	}
 	log.DefaultLogger.Debug("Converted wide time Frame is:", frame)
 	frame.RefID = dataQuery.RefID
@@ -359,14 +363,16 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 	ch <- queryResult
 }
 
-func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryConfigStruct, dataResponse DataQueryResult, err error) *data.Frame {
+func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryConfigStruct, dataResponse DataQueryResult) (*data.Frame, error) {
 	tsSchema := frame.TimeSeriesSchema()
 	if tsSchema.Type == data.TimeSeriesTypeLong {
 		fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
 		if len(dataResponse.Tables) > 0 && len(dataResponse.Tables[0].Rows) > 0 {
+			var err error
 			frame, err = data.LongToWide(frame, fillMode)
 			if err != nil {
 				log.DefaultLogger.Error("Could not convert long frame to wide frame", "err", err)
+				return nil, err
 			}
 		}
 		for _, field := range frame.Fields {
@@ -377,7 +383,7 @@ func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryCo
 			}
 		}
 	}
-	return frame
+	return frame, nil
 }
 
 func mapFillMode(fillModeString string) data.FillMode {

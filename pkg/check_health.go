@@ -21,7 +21,7 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 	instance := i.(*instanceSettings)
 	db := instance.db
 
-	row, err := db.QueryContext(ctx, "SELECT 1")
+	row, err := td.db.QueryContext(ctx, "SELECT 1")
 	if err != nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,

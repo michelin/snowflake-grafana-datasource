@@ -1,11 +1,94 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
+
+func TestCheckHealthWithValidConnection(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
+
+	req := &backend.CheckHealthRequest{
+		PluginContext: backend.PluginContext{
+			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+				JSONData:                []byte("{\"account\":\"test\",\"username\":\"user\"}"),
+				DecryptedSecureJSONData: map[string]string{"password": "pass"},
+			},
+		},
+	}
+	ctx := context.Background()
+	td := &SnowflakeDatasource{db: db}
+	result, err := td.CheckHealth(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, backend.HealthStatusOk, result.Status)
+	require.Equal(t, "Data source is working", result.Message)
+}
+
+func TestCheckHealthWithInvalidConnection(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT 1").WillReturnError(sql.ErrConnDone)
+
+	req := &backend.CheckHealthRequest{
+		PluginContext: backend.PluginContext{
+			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+				JSONData:                []byte("{\"account\":\"invalid\",\"username\":\"user\"}"),
+				DecryptedSecureJSONData: map[string]string{"password": "pass"},
+			},
+		},
+	}
+	ctx := context.Background()
+	td := &SnowflakeDatasource{db: db}
+	result, err := td.CheckHealth(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, backend.HealthStatusError, result.Status)
+	require.Contains(t, result.Message, "Validation query error")
+}
+
+func TestCheckHealthWithMissingPasswordAndPrivateKey(t *testing.T) {
+	req := &backend.CheckHealthRequest{
+		PluginContext: backend.PluginContext{
+			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+				JSONData:                []byte("{\"account\":\"test\",\"username\":\"user\"}"),
+				DecryptedSecureJSONData: map[string]string{},
+			},
+		},
+	}
+	ctx := context.Background()
+	td := &SnowflakeDatasource{}
+	result, err := td.CheckHealth(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, backend.HealthStatusError, result.Status)
+	require.Equal(t, "Password or private key are required.", result.Message)
+}
+
+func TestCheckHealthWithInvalidJSONData(t *testing.T) {
+	req := &backend.CheckHealthRequest{
+		PluginContext: backend.PluginContext{
+			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+				JSONData:                []byte("{"),
+				DecryptedSecureJSONData: map[string]string{"password": "pass"},
+			},
+		},
+	}
+	ctx := context.Background()
+	td := &SnowflakeDatasource{}
+	result, err := td.CheckHealth(ctx, req)
+	require.NoError(t, err)
+	require.Equal(t, backend.HealthStatusError, result.Status)
+	require.Equal(t, "Error getting config: unexpected end of JSON input", result.Message)
+}
 
 func TestCreateAndValidationConnectionString(t *testing.T) {
 
