@@ -70,7 +70,7 @@ func TestCheckHealthWithMissingPasswordAndPrivateKey(t *testing.T) {
 	result, err := td.CheckHealth(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, backend.HealthStatusError, result.Status)
-	require.Equal(t, "Password or private key are required.", result.Message)
+	require.Equal(t, "Password or private key or Oauth token are required.", result.Message)
 }
 
 func TestCheckHealthWithInvalidJSONData(t *testing.T) {
@@ -105,7 +105,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Password or private key are required."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Password or private key or Oauth token are required."},
 		},
 		{
 			request: &backend.CheckHealthRequest{
@@ -144,12 +144,56 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 			request: &backend.CheckHealthRequest{
 				PluginContext: backend.PluginContext{
 					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\"}"),
+						DecryptedSecureJSONData: map[string]string{"password": "pass", "privateKey": "xxxxx"},
+					},
+				},
+			},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Only one authentication method must be provided."},
+		},
+		{
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\"}"),
+						DecryptedSecureJSONData: map[string]string{"password": "pass", "token": "t"},
+					},
+				},
+			},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Only one authentication method must be provided."},
+		},
+		{
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\"}"),
+						DecryptedSecureJSONData: map[string]string{"token": "t", "privateKey": "xxxxx"},
+					},
+				},
+			},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Only one authentication method must be provided."},
+		},
+		{
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
 						JSONData:                []byte("{\"account\":\"test\",\"username\":\"user\"}"),
 						DecryptedSecureJSONData: map[string]string{"password": "pass"},
 					},
 				},
 			},
 			connectionString: "user:pass@test?database=&role=&schema=&warehouse=&validateDefaultParameters=true",
+		},
+		{
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\",\"username\":\"user\"}"),
+						DecryptedSecureJSONData: map[string]string{"token": "t"},
+					},
+				},
+			},
+			connectionString: "test?authenticator=oauth&database=&role=&schema=&token=t&warehouse=&validateDefaultParameters=true",
 		},
 		{
 			request: &backend.CheckHealthRequest{
