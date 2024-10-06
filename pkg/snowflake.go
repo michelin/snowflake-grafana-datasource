@@ -42,8 +42,7 @@ type SnowflakeDatasource struct {
 	// The instance manager can help with lifecycle management
 	// of datasource instances in plugins. It's not a requirements
 	// but a best practice that we recommend that you follow.
-	im            instancemgmt.InstanceManager
-	actQueryCount queryCounter
+	im instancemgmt.InstanceManager
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -158,8 +157,9 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 }
 
 type instanceSettings struct {
-	db     *sql.DB
-	config *pluginConfig
+	db            *sql.DB
+	config        *pluginConfig
+	actQueryCount queryCounter
 }
 
 func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {

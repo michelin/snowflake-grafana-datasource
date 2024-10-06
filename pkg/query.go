@@ -260,7 +260,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		MaxDataPoints: dataQuery.MaxDataPoints,
 		db:            instance.db,
 		config:        instance.config,
-		actQueryCount: &td.actQueryCount,
+		actQueryCount: &instance.actQueryCount,
 	}
 
 	errAppendDebug := func(frameErr string, err error, query string) {

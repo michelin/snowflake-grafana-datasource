@@ -193,7 +193,6 @@ func (*FakeInstanceManager) Do(_ context.Context, _ backend.PluginContext, _ ins
 
 func GetMockService(db *sql.DB) *SnowflakeDatasource {
 	return &SnowflakeDatasource{
-		im:            &FakeInstanceManager{db: db},
-		actQueryCount: 0, //logger: log.New(),
+		im: &FakeInstanceManager{db: db},
 	}
 }
