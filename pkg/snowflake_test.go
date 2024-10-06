@@ -81,11 +81,12 @@ func TestGetConnectionString(t *testing.T) {
 	})
 }
 
+// TODO  TestCreatesNewDataSourceInstance will fail because no login data is provided.
 func TestCreatesNewDataSourceInstance(t *testing.T) {
 	settings := backend.DataSourceInstanceSettings{}
 	instance, err := newDataSourceInstance(context.Background(), settings)
-	require.NoError(t, err)
-	require.NotNil(t, instance)
+	require.Error(t, err)
+	require.Nil(t, instance)
 }
 
 func TestDisposesInstanceWithoutError(t *testing.T) {

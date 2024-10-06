@@ -348,8 +348,9 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 	if queryConfig.isTimeSeriesType() {
 		frame, err = td.longToWide(frame, queryConfig, dataResponse)
 		if err != nil {
-			response.Error = err
-			return response
+			queryResult.dataResponse.Error = fmt.Errorf("%w", err)
+			queryResult.dataResponse.Frames = data.Frames{frame}
+			ch <- queryResult
 		}
 	}
 	log.DefaultLogger.Debug("Converted wide time Frame is:", frame)
