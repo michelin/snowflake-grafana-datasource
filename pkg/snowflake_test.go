@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestGetConfig(t *testing.T) {
@@ -15,8 +16,8 @@ func TestGetConfig(t *testing.T) {
 		response string
 		err      string
 	}{
-		{json: "{}", config: pluginConfig{}},
-		{json: "{\"account\":\"test\"}", config: pluginConfig{Account: "test"}},
+		{json: "{}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"account\":\"test\"}", config: pluginConfig{Account: "test", ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
 		{json: "{", err: "unexpected end of JSON input"},
 	}
 	for i, tc := range tcs {
