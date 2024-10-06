@@ -336,7 +336,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
             type="number"
             className="width-20"
             onChange={this.onMaxOpenConnectionsChange}
-            value={jsonData.maxOpenConnections || '100'}
+            value={jsonData.maxOpenConnections}
             placeholder="100"
           />
         </InlineField>
@@ -348,7 +348,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
             type="number"
             className="width-20"
             onChange={this.onMaxQueuedQueriesChange}
-            value={jsonData.maxQueuedQueries || '400'}
+            value={jsonData.maxQueuedQueries}
             placeholder="400"
           />
         </InlineField>
@@ -360,7 +360,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
             type="number"
             className="width-20"
             onChange={this.onConnectionLifetimeChange}
-            value={jsonData.connectionLifetime || '60'}
+            value={jsonData.connectionLifetime}
             placeholder="60"
           />
         </InlineField>
