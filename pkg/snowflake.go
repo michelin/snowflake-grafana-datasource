@@ -49,11 +49,20 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
-	token := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["token"]
+	oauth := Oauth{
+		clientId:      req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientId"],
+		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		tokenEndpoint: req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["tokenEndpoint"],
+	}
 
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
 		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
+		return response, err
+	}
+
+	token, err := getToken(oauth, false)
+	if err != nil {
 		return response, err
 	}
 
