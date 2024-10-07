@@ -13,7 +13,10 @@ import (
 // datasource configuration page which allows users to verify that
 // a datasource is working as expected.
 func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-
+	_, result := createAndValidationConnectionString(req)
+	if result != nil {
+		return result, nil
+	}
 	i, err := td.im.Get(ctx, req.PluginContext)
 	if err != nil {
 		return nil, err

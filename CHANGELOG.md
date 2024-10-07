@@ -7,6 +7,7 @@
 - Improve error handling when specific macro parameters are left empty.
 
 ### 🔨 Changed
+- Improve unit tests coverage.
 - Upgrade grafana-plugin-sdk-go to version v0.251.0.
 
 ## 1.7.1
