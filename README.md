@@ -91,7 +91,8 @@ Macro example                                          | Description
 `$__unixEpochNanoTo()`                                 | Will be replaced by the end of the currently active time selection as nanosecond timestamp. For example, *1494497183142514872*
 `$__unixEpochGroup(dateColumn,'5m', [fillmode])`       | Same as $__timeGroup but for times stored as Unix timestamp (only available in Grafana 5.3+).
 `$__unixEpochGroupAlias(dateColumn,'5m', [fillmode])`  | Same as above but also adds a column alias (only available in Grafana 5.3+).
-
+`$__timeRoundFrom(d duration in minutes)`              | The result of rounding __timeFrom() down to a multiple of d. [default d: 15] -- Will round the time to the last full quarter. $__timeRoundFrom(5) will round time to the last full 5 minutes.
+`$__timeRoundTo(d duration in minutes)`                | The result of rounding __timeTo() up to a multiple of d. [default d: 15] -- Will round the time to the next full quarter. $__timeRoundUp(5) will round time to the next full 5 minutes.
 
 #### Write Queries
 
@@ -170,6 +171,15 @@ WHERE
 GROUP BY 
   <time_column>
 ```
+
+## Caching
+### Snowflake caching
+
+Snowflake caches queries with the same footprint / hash in its own query-cache. The utilization of the snowflake cache will optimize your query in speed and costs. Since a Grafana query mostly has a now() component the cache will never be used as the hash is changing with every queries.
+To create more queries with the same hash two macros `$__timeRoundFrom(d)` and `$__timeRoundTo(d)` will create truncated timestamps. They are truncated to the next multiple of d. Grafana will ask data in a wider window and the query can use the snowflake query-cache.
+This is no problem for timeseries charts as a grafana timeseries chart cuts it's x-Axis to the panel time window. Slices before and after will not be rendered. Take care that the additional data is part of the resulting dataset. If a table is displayed the whole result will be presented and it could be slightly out of the original asked time-frame.
+
+![Caching Example](./img/timeRound.png)
 
 #### Create an annotation
 
