@@ -109,6 +109,37 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		return fmt.Sprintf("'%s'", timeRange.From.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeTo":
 		return fmt.Sprintf("'%s'", timeRange.To.UTC().Format(time.RFC3339Nano)), nil
+	case "__timeRoundFrom":
+		//Rounds timestamp to the last 15min by default. First Argument could be passed to have a variable rounding in Minutes.
+		timeSpan := 15
+		if len(args) == 1 && args[0] != "" {
+			if _, err := strconv.Atoi(args[0]); err == nil {
+				timeSpan, _ = strconv.Atoi(args[0])
+			} else {
+				return "", fmt.Errorf("macro %v first argument must be a integer", name)
+			}
+			if timeSpan <= 0 {
+				return "", fmt.Errorf("macro %v first argument must be a positive Integer", name)
+			}
+		} else if len(args) > 1 {
+			return "", fmt.Errorf("macro %v only 1 argument allowed", name)
+		}
+		return fmt.Sprintf("'%s'", timeRange.From.UTC().Truncate(time.Minute*time.Duration(timeSpan)).Format(time.RFC3339Nano)), nil
+	case "__timeRoundTo":
+		timeSpan := 15
+		if len(args) == 1 && args[0] != "" {
+			if _, err := strconv.Atoi(args[0]); err == nil {
+				timeSpan, _ = strconv.Atoi(args[0])
+			} else {
+				return "", fmt.Errorf("macro %v first argument must be a integer", name)
+			}
+			if timeSpan <= 0 {
+				return "", fmt.Errorf("macro %v first argument must be a positive Integer", name)
+			}
+		} else if len(args) > 1 {
+			return "", fmt.Errorf("macro %v only 1 argument allowed", name)
+		}
+		return fmt.Sprintf("'%s'", timeRange.To.UTC().Add(time.Minute*time.Duration(timeSpan)).Truncate(time.Minute*time.Duration(timeSpan)).Format(time.RFC3339Nano)), nil
 	case "__timeGroup":
 		if len(args) < 2 {
 			return "", fmt.Errorf("macro %v needs time column and interval and optional fill value", name)
