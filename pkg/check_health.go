@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -14,25 +13,18 @@ import (
 // datasource configuration page which allows users to verify that
 // a datasource is working as expected.
 func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-
-	connectionString, result := createAndValidationConnectionString(req)
+	_, result := createAndValidationConnectionString(req)
 	if result != nil {
 		return result, nil
 	}
-	// Use the existing db field instead of opening a new connection
-	if td.db == nil {
-		var err error
-		td.db, err = sql.Open("snowflake", connectionString)
-		if err != nil {
-			return &backend.CheckHealthResult{
-				Status:  backend.HealthStatusError,
-				Message: fmt.Sprintf("Connection issue : %s", err),
-			}, nil
-		}
+	i, err := td.im.Get(ctx, req.PluginContext)
+	if err != nil {
+		return nil, err
 	}
-	defer td.db.Close()
+	instance := i.(*instanceSettings)
+	db := instance.db
 
-	row, err := td.db.QueryContext(ctx, "SELECT 1")
+	row, err := db.QueryContext(ctx, "SELECT 1")
 	if err != nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
