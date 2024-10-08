@@ -88,7 +88,8 @@ Macro example                                          | Description
 `$__unixEpochNanoTo()`                                 | Will be replaced by the end of the currently active time selection as nanosecond timestamp. For example, *1494497183142514872*
 `$__unixEpochGroup(dateColumn,'5m', [fillmode])`       | Same as $__timeGroup but for times stored as Unix timestamp (only available in Grafana 5.3+).
 `$__unixEpochGroupAlias(dateColumn,'5m', [fillmode])`  | Same as above but also adds a column alias (only available in Grafana 5.3+).
-
+`$__timeRoundFrom(d duration in minutes)`              | The result of rounding __timeFrom() down to a multiple of d. [default d: 15] -- Will round the time to the last full quarter. $__timeRoundFrom(5) will round time to the last full 5 minutes.
+`$__timeRoundTo(d duration in minutes)`                | The result of rounding __timeTo() up to a multiple of d. [default d: 15] -- Will round the time to the next full quarter. $__timeRoundTo(5) will round time to the next full 5 minutes.
 
 #### Write Queries
 
@@ -168,11 +169,18 @@ GROUP BY
   <time_column>
 ```
 
+
 #### Create an annotation
 
 Annotations allow you to overlay events on a graph.
 To create an annotation, in the dashboard settings click "Annotations", and "New".
 
+## Caching
+### Snowflake caching
+
+Snowflake caches queries with the same footprint / hash in its own query-cache. Since a Grafana query mostly has a now() component the cache will never be used.
+To get more queries with the same hash use the two macros `$__timeRoundFrom(d)` and `$__timeRoundTo(d)` to create wider truncated timestamps. This is no problem for timeseries charts. Grafana cuts it's x-Axis to the selected dashboard time window. If a table is displayed the whole result will be presented and it could be slightly out of the time window.\
+More info about snowflake-side caching: https://docs.snowflake.com/en/user-guide/querying-persisted-results#retrieval-optimization
 
 ## Development
 
