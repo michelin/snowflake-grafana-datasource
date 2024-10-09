@@ -57,7 +57,8 @@ Available configuration fields are as follows:
  Account Name             | Specifies the full name of your account (provided by Snowflake) 
  Username                 | Specifies the login name of the user for the connection.
  Password                 | Specifies the password for the specified user.
- Private key              | Specifies the the private key. Must be encoded in base 64 URL encoded pkcs8.<br/>**Command :**<br/> `egrep -v '^(-----BEGIN PRIVATE KEY\|-----END PRIVATE KEY)' rsa_key.p8 \| tr -d '\n' \| sed 's/+/-/g; s/\//_/g' > rsa_key_urlbase64.p8`
+ Private key              | Specifies the private key.
+ Oauth Token              | Specifies the Oauth token.
  Role (Optional)          | Specifies the default access control role to use in the Snowflake session initiated by Grafana.
  Warehouse (Optional)     | Specifies the virtual warehouse to use once connected. 
  Database (Optional)      | Specifies the default database to use once connected. 
