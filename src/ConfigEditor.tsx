@@ -1,5 +1,5 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import {  InlineField, InlineSwitch, SecretInput, Input, FieldSet } from '@grafana/ui';
+import { InlineField, InlineSwitch, SecretInput, Input, FieldSet } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
 
@@ -10,19 +10,7 @@ interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> { }
 interface State { }
 
 export class ConfigEditor extends PureComponent<Props, State> {
-  componentDidMount() {
-    const { onOptionsChange, options } = this.props;
-    if (options.jsonData.maxOpenConnections === ""){
-      const jsonData = {
-        ...options.jsonData,
-        maxOpenConnections: "100",
-        maxQueuedQueries:"400",
-        connectionLifetime: "60",
-        
-      };
-      onOptionsChange({ ...options, jsonData });
-    }
-  }
+  
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
 
@@ -184,7 +172,38 @@ export class ConfigEditor extends PureComponent<Props, State> {
     };
     onOptionsChange({ ...options, jsonData });
   };
-
+  onUseCachingChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      useCaching: event.target.checked,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onUseCacheByDefaultChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      useCacheByDefault: event.target.checked,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onCacheSizeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      cacheSize:  event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onCacheRetentionChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      cacheRetention:  event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
   render() {
     const { options } = this.props;
     const { jsonData, secureJsonFields } = options;
@@ -221,12 +240,12 @@ export class ConfigEditor extends PureComponent<Props, State> {
           label="basic or key pair authentication"
           tooltip="" >
           <InlineSwitch
-                name="keyorpairauth"
-                required
-                value={jsonData.basicAuth ?? false}
-                autoComplete="off"
-                onChange={this.onAuthenticationChange}
-              />
+            name="keyorpairauth"
+            required
+            value={jsonData.basicAuth ?? false}
+            autoComplete="off"
+            onChange={this.onAuthenticationChange}
+          />
         </InlineField>
 
         {!jsonData.basicAuth && (
@@ -273,7 +292,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
             placeholder="Role"
           />
         </InlineField>
-       
+
         <br />
         <h3 className="page-heading">Parameter configuration</h3>
         <InlineField
@@ -364,8 +383,58 @@ export class ConfigEditor extends PureComponent<Props, State> {
             placeholder="60"
           />
         </InlineField>
+        <br />
+        <h3 className="page-heading">local Caching configuration</h3>
+        <InlineField
+          labelWidth={30}
+          label="enable Caching"
+          tooltip="Enable the Caching Backend in the Datasource. If similar sql-statements are queried thee result will be delivered out of cache." >
+            <InlineSwitch
+                name="useCaching"
+                required
+                value={jsonData.useCaching ?? false}
+                autoComplete="off"
+                onChange={this.onUseCachingChange}
+              />
+        </InlineField>
+         <InlineField
+          labelWidth={30}
+          label="useCaching by default"
+          tooltip="Always use caching for every Queries be default. No config Statement needed in the Query." >
+          <InlineSwitch
+                name="useCacheByDefault"
+                required
+                value={jsonData.useCacheByDefault ?? false}
+                autoComplete="off"
+                onChange={this.onUseCacheByDefaultChange}
+              />
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="max CacheSize"
+          tooltip="Size of the cache in MB. If exceed oldest queries are dropped. (default=2048)" >
+          <Input
+            type="number"
+            className="width-20"
+            onChange={this.onCacheSizeChange}
+            value={jsonData.cacheSize}
+            placeholder="2048"
+          />
+        </InlineField>
+        <InlineField
+          labelWidth={30}
+          label="Cache Retention"
+          tooltip="How long a query is hold in the cache in minutes. (default=60)" >
+          <Input
+            type="number"
+            className="width-20"
+            onChange={this.onCacheRetentionChange}
+            value={jsonData.cacheRetention}
+            placeholder="60"
+          />
+        </InlineField>
       </FieldSet >
     )
-    
+
   }
 }

@@ -32,6 +32,10 @@ export interface SnowflakeOptions extends DataSourceJsonData {
   maxOpenConnections?: string;
   maxQueuedQueries?: string;
   connectionLifetime?: string;
+  useCaching: boolean;
+  useCacheByDefault: boolean;
+  cacheSize?: string;
+  cacheRetention?: string;
 }
 
 /**
