@@ -197,6 +197,28 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 			return tg + " AS time", nil
 		}
 		return "", err
+	case "__useCacheUntil":
+		timeSpan := 1
+		if len(args) == 1 && args[0] != "" {
+			if _, err := strconv.Atoi(args[0]); err == nil {
+				timeSpan, _ = strconv.Atoi(args[0])
+				configStruct.CacheState.Use = true
+				if timeRange.To.UTC().Add(time.Minute*time.Duration(timeSpan)).Truncate(time.Minute*time.Duration(timeSpan)).Unix() > time.Now().Unix() {
+					configStruct.CacheState.Until = timeRange.To.UTC().Add(time.Minute * time.Duration(timeSpan)).Truncate(time.Minute * time.Duration(timeSpan))
+				}
+				return "", nil
+			} else {
+				return "", fmt.Errorf("macro %v 1. Argument must be a integer", name)
+			}
+		} else {
+			return "", fmt.Errorf("macro %v needs one Argument - Trunc time i Minutes", name)
+		}
+	case "__useNoCache":
+		configStruct.CacheState.Use = false
+		return "", nil
+	case "__useCache":
+		configStruct.CacheState.Use = true
+		return "", nil
 	default:
 		return "", fmt.Errorf("unknown macro %q", name)
 	}

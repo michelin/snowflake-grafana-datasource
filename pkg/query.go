@@ -53,6 +53,7 @@ type queryConfigStruct struct {
 	MaxDataPoints int64
 	FillMode      string
 	FillValue     float64
+	CacheState    cacheState
 	db            *sql.DB
 	config        *pluginConfig
 	actQueryCount *queryCounter
@@ -258,6 +259,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		Interval:      dataQuery.Interval,
 		TimeRange:     dataQuery.TimeRange,
 		MaxDataPoints: dataQuery.MaxDataPoints,
+		CacheState:    cacheState{Use: instance.config.UseCacheByDefault, Until: time.Unix(0, 0)},
 		db:            instance.db,
 		config:        instance.config,
 		actQueryCount: &instance.actQueryCount,
@@ -283,19 +285,30 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 	// Remove final semi column
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
+	frame, err := getQueryFromCache(instance.cache, queryConfig)
+	if err != nil {
+		frame, err = td.queryData(ctx, queryConfig, dataQuery)
+		if err != nil {
+			errAppendDebug("db query error", err, queryConfig.FinalQuery)
+		}
+		setQueryInCache(instance.cache, queryConfig, frame)
+	}
+	queryResult.dataResponse.Frames = data.Frames{frame}
+	ch <- queryResult
+}
+
+func (td *SnowflakeDatasource) queryData(ctx context.Context, queryConfig queryConfigStruct, dataQuery backend.DataQuery) (*data.Frame, error) {
 	frame := data.NewFrame("")
 	dataResponse, err := queryConfig.fetchData(ctx)
 	if err != nil {
-		errAppendDebug("db query error", err, queryConfig.FinalQuery)
-		return
+		return frame, err
 	}
 	log.DefaultLogger.Debug("Response", "data", dataResponse)
 	for _, table := range dataResponse.Tables {
 		timeColumnIndex := -1
 		for i, column := range table.Columns {
 			if err != nil {
-				errAppendDebug("db query error", err, queryConfig.FinalQuery)
-				return
+				return frame, err
 			}
 			// Check time column
 			if queryConfig.isTimeSeriesType() && equalsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
@@ -348,9 +361,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 	if queryConfig.isTimeSeriesType() {
 		frame, err = td.longToWide(frame, queryConfig, dataResponse)
 		if err != nil {
-			queryResult.dataResponse.Error = fmt.Errorf("%w", err)
-			queryResult.dataResponse.Frames = data.Frames{frame}
-			ch <- queryResult
+			return frame, err
 		}
 	}
 	log.DefaultLogger.Debug("Converted wide time Frame is:", frame)
@@ -359,9 +370,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		Type:                data.FrameTypeTimeSeriesWide,
 		ExecutedQueryString: queryConfig.FinalQuery,
 	}
-
-	queryResult.dataResponse.Frames = data.Frames{frame}
-	ch <- queryResult
+	return frame, err
 }
 
 func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryConfigStruct, dataResponse DataQueryResult) (*data.Frame, error) {

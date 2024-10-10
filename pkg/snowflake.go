@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/allegro/bigcache/v3"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
@@ -102,6 +103,10 @@ type pluginConfig struct {
 	IntMaxQueuedQueries   int64
 	ConnectionLifetime    string `json:"connectionLifetime"`
 	IntConnectionLifetime int64
+	UseCaching            bool   `json:"useCaching"`
+	UseCacheByDefault     bool   `json:"useCacheByDefault"`
+	CacheSize             string `json:"cacheSize"`
+	CacheRetention        string `json:"cacheRetention"`
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {
@@ -131,6 +136,7 @@ func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, erro
 	} else {
 		return config, err
 	}
+
 	if err != nil {
 		return config, err
 	}
@@ -158,6 +164,7 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 
 type instanceSettings struct {
 	db            *sql.DB
+	cache         *bigcache.BigCache
 	config        *pluginConfig
 	actQueryCount queryCounter
 }
@@ -183,7 +190,11 @@ func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstan
 	db.SetMaxOpenConns(int(config.IntMaxOpenConnections))
 	db.SetMaxIdleConns(int(config.IntMaxOpenConnections))
 	db.SetConnMaxLifetime(time.Duration(int(config.IntConnectionLifetime)) * time.Minute)
-	return &instanceSettings{db: db, config: &config}, nil
+	cache, err := newQueryCache(config)
+	if err != nil {
+		return nil, err
+	}
+	return &instanceSettings{db: db, config: &config, cache: cache}, nil
 }
 
 func (s *instanceSettings) Dispose() {
@@ -191,6 +202,11 @@ func (s *instanceSettings) Dispose() {
 	if s.db != nil {
 		if err := s.db.Close(); err != nil {
 			log.DefaultLogger.Error("Failed to dispose db", "error", err)
+		}
+	}
+	if s.cache != nil {
+		if err := s.cache.Close(); err != nil {
+			log.DefaultLogger.Error("Failed to dispose cache", "error", err)
 		}
 	}
 	log.DefaultLogger.Debug("DB disposed")
