@@ -65,7 +65,11 @@ Available configuration fields are as follows:
  Extra Options (Optional) | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string. 
  max. open Connections    | How many connections to snowflake are opened at a time. If the limit of open connections is exceeded newer queries will be cached in the queue. [default: 100]
  max. queued Queries      | Queue size of the internal query queue. If this limit is exceeded the query will be dropped and and error is thrown. Should always be higher as `max. open Connections`. 0 to disable. [default: 400] 
- Connection lifetime      | Time in minutes until unnused connections are recycled. [default: 60min]
+ Connection lifetime      | Time in minutes until unused connections are recycled. [default: 60min]
+ enable Caching           | Enable the plugin internal caching system. Queries with exact the same sql-statement will be delivered out of the cache. [default: off]
+ useCaching by default    | if true: Cache is used for every query. false: Cache will not be used by default. Use `$__useNoCache()` / `$__useCache()` to override on query level.
+ Cache Size               | Cache Size in MB. Cache will stay in Ram only. Set with care to a value your system can handle. [default: 2048MB]
+ Cache Retention Time     | Time in Minutes until the oldest entries will be dropped. If the memory limit is exceeded first old queries will be dropped earlier. [default: 60min]
 
 #### Supported Macros
 
@@ -93,6 +97,9 @@ Macro example                                          | Description
 `$__unixEpochGroupAlias(dateColumn,'5m', [fillmode])`  | Same as above but also adds a column alias (only available in Grafana 5.3+).
 `$__timeRoundFrom(d duration in minutes)`              | The result of rounding __timeFrom() down to a multiple of d. [default d: 15] -- Will round the time to the last full quarter. $__timeRoundFrom(5) will round time to the last full 5 minutes.
 `$__timeRoundTo(d duration in minutes)`                | The result of rounding __timeTo() up to a multiple of d. [default d: 15] -- Will round the time to the next full quarter. $__timeRoundTo(5) will round time to the next full 5 minutes.
+`$__useCacheUntil(m Duration in Minutes)`             | This will drop the cache by the next multiple of d. In combination with `__timeRoundTo()` and `__timeRoundFrom()` you can use the Snowflake server side Cache which will check for new results on the DB and the static Plugin Cache together. A good practice is to set __timeRoundFrom and __timeRoundTo to e.g. 15 minutes. With __useCacheUntil(2) the local cache will be dropped every 2Minutes checking the Snowflake DB for new data. `$__useCacheUntil()` is only respected on now() queries. Should be the top most statement in the query.
+`$__useCache()`                                          | This will enable the local Cache for this Query. Should be the topmost statement in the query.
+`$__useNoCache()`                                        | This will disable the local Cache for this Query. Should be the topmost statement in the query.
 
 #### Write Queries
 
