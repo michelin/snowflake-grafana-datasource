@@ -58,7 +58,8 @@ Available configuration fields are as follows:
  Username                 | Specifies the login name of the user for the connection.
  Password                 | Specifies the password for the specified user.
  Private key              | Specifies the private key.
- Oauth Token              | Specifies the Oauth token.
+ Client Id                | Specifies the Oauth client ID.
+ Client Secret            | Specifies the Oauth client Secret.
  Role (Optional)          | Specifies the default access control role to use in the Snowflake session initiated by Grafana.
  Warehouse (Optional)     | Specifies the virtual warehouse to use once connected. 
  Database (Optional)      | Specifies the default database to use once connected. 
@@ -175,6 +176,11 @@ GROUP BY
 
 Annotations allow you to overlay events on a graph.
 To create an annotation, in the dashboard settings click "Annotations", and "New".
+
+#### Oauth Configuration
+
+To use Oauth, you need to create an Oauth custom integration in your Snowflake account.<
+You can follow the steps in the [Snowflake documentation](https://docs.snowflake.com/en/user-guide/oauth-custom).
 
 ## Caching
 ### Snowflake caching

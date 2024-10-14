@@ -33,6 +33,7 @@ export interface SnowflakeOptions extends DataSourceJsonData {
   maxChunkDownloadWorkers?: string;
   customJSONDecoderEnabled: boolean;
   authMethod: string;
+  clientId?: string;
 }
 
 /**
@@ -41,5 +42,6 @@ export interface SnowflakeOptions extends DataSourceJsonData {
 export interface SnowflakeSecureOptions {
   password?: string;
   privateKey?: string;
-  token?: string;
+  clientSecret?: string;
+  tokenEndpoint?: string;
 }

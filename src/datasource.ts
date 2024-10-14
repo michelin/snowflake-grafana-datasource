@@ -45,7 +45,7 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
           return data.fields;
         }),
         map((field) =>
-          field.values.toArray().map((value) => {
+          field.values.map((value) => {
             return { text: value };
           })
         )

@@ -1,7 +1,9 @@
-import React, { ChangeEvent, PureComponent } from 'react';
+import React, {ChangeEvent, PureComponent} from 'react';
 import {Checkbox, ControlledCollapse, LegacyForms, RadioButtonGroup, InlineLabel } from '@grafana/ui';
 import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
+import { useSearchParams } from 'react-router-dom';
+
 
 const { SecretFormField, FormField } = LegacyForms;
 
@@ -19,9 +21,12 @@ const authOptions = [
 
 export class ConfigEditor extends PureComponent<Props, State> {
 
-  state: State = {
-    authMethod: authOptions[0].value,
-  };
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      authMethod: this.props.options.jsonData.authMethod || authOptions[0].value,
+    };
+  }
 
   onAuthMethodChange = (value: string) => {
     const { onOptionsChange, options } = this.props;
@@ -31,7 +36,24 @@ export class ConfigEditor extends PureComponent<Props, State> {
       ...options.jsonData,
       authMethod,
     };
-    onOptionsChange({ ...options, jsonData });
+
+    onOptionsChange({
+      ...options,
+      jsonData,
+      secureJsonFields: {
+        ...options.secureJsonFields,
+        password: false,
+        privateKey: false,
+        clientSecret: false,
+      },
+      secureJsonData: {
+        ...options.secureJsonData,
+        password: '',
+        privateKey: '',
+        clientSecret: '',
+        clientId: ''
+      },
+    });
   };
 
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -130,9 +152,8 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({
       ...options,
       secureJsonData: {
+        ...options.secureJsonData,
         password: event.target.value,
-        privateKey: '',
-        token: ''
       },
     });
   };
@@ -171,9 +192,8 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({
       ...options,
       secureJsonData: {
+        ...options.secureJsonData,
         privateKey: privateKey,
-        password: '',
-        token: ''
       },
     });
   };
@@ -193,29 +213,44 @@ export class ConfigEditor extends PureComponent<Props, State> {
     });
   };
 
-  onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
+  onClientIdChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      clientId: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
+  onClientSecretChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     onOptionsChange({
       ...options,
       secureJsonData: {
-        token: event.target.value,
-        privateKey: '',
-        password: ''
+        ...options.secureJsonData,
+        clientSecret: event.target.value,
       },
     });
   };
 
-  onResetToken = () => {
+  loginWithSnowflake = () => {
+    const { options } = this.props;
+    let clientId = encodeURIComponent((options.jsonData as SnowflakeOptions).clientId || '');
+    let redirectUrl = window.location.origin + '/connections/datasources/edit/' + options.uid;
+    window.location.replace('https://'+options.jsonData.account+'/oauth/authorize?response_type=code&client_id='+ clientId +'&redirect_uri='+encodeURIComponent(redirectUrl));
+  }
+
+  onResetClientSecret = () => {
     const { onOptionsChange, options } = this.props;
     onOptionsChange({
       ...options,
       secureJsonFields: {
         ...options.secureJsonFields,
-        token: false,
+        clientSecret: false,
       },
       secureJsonData: {
         ...options.secureJsonData,
-        token: ''
+        clientSecret: ''
       },
     });
   };
@@ -225,6 +260,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const { jsonData, secureJsonFields } = options;
     const secureJsonData = (options.secureJsonData || {}) as SnowflakeSecureOptions;
     const { authMethod } = this.state;
+    const [searchParams] = useSearchParams();
 
     return (
         <div className="gf-form-group">
@@ -246,7 +282,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
             <InlineLabel width={20}>Authentications method</InlineLabel>
             <RadioButtonGroup
                 options={authOptions}
-                value={authOptions.find((option) => option.value === authMethod)?.value}
+                value={authMethod}
                 onChange={this.onAuthMethodChange}
             />
           </div>
@@ -291,20 +327,42 @@ export class ConfigEditor extends PureComponent<Props, State> {
                     onChange={this.onPrivateKeyChange}
                 />
             )}
-            {authMethod === 'oauth' && (
-                <SecretFormField
-                    isConfigured={(secureJsonFields && secureJsonFields.token) as boolean}
-                    value={secureJsonData.token || ''}
-                    tooltip="Oauth token"
-                    label="Oauth token"
-                    placeholder="eyJhbGciOiJ..."
-                    labelWidth={10}
-                    inputWidth={20}
-                    onReset={this.onResetToken}
-                    onChange={this.onTokenChange}
-                />
-            )}
           </div>
+            {authMethod === 'oauth' && (
+                <div>
+                  <div className="gf-form">
+                    <FormField
+                        value={jsonData.clientId || ''}
+                        tooltip="Oauth client ID"
+                        label="Client ID"
+                        labelWidth={10}
+                        inputWidth={20}
+                        onChange={this.onClientIdChange}
+                    />
+                  </div>
+                  <div className="gf-form">
+                    <SecretFormField
+                        isConfigured={(secureJsonFields && secureJsonFields.clientSecret) as boolean}
+                        value={secureJsonData.clientSecret || ''}
+                        tooltip="Oauth Client Secret"
+                        label="Client Secret"
+                        placeholder=""
+                        labelWidth={10}
+                        inputWidth={20}
+                        onReset={this.onResetClientSecret}
+                        onChange={this.onClientSecretChange}
+                    />
+                  </div>
+                </div>
+            )}
+          { !searchParams.has('code') && authMethod === 'oauth' && (
+              <button
+                  onClick={this.loginWithSnowflake}
+              >
+                Login with Snowflake
+              </button>
+          )}
+
           <div className="gf-form">
             <FormField
                 label="Role"
