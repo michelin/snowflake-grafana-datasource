@@ -53,15 +53,6 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 
 	// create response struct
 	result := backend.NewQueryDataResponse()
-
-	/*password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
-
-	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
-		return response, err
-	}*/
 	i, err := td.im.Get(ctx, req.PluginContext)
 	if err != nil {
 		return nil, err
@@ -73,7 +64,6 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	for _, query := range req.Queries {
 		wg.Add(1)
 		go td.query(ctx, &wg, ch, instance, query)
-		//go e.executeQuery(query, &wg, ctx, ch, queryjson)
 	}
 
 	wg.Wait()

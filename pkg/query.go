@@ -228,8 +228,6 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 				queryResult.dataResponse.Error = theErr
 			} else if theErrString, ok := r.(string); ok {
 				queryResult.dataResponse.Error = fmt.Errorf(theErrString)
-			} else {
-				//queryResult.dataResponse.Error = fmt.Errorf("unexpected error - %s", td.userError)
 			}
 			ch <- queryResult
 		}
@@ -238,14 +236,10 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
-		//log.DefaultLogger.Error("Could not unmarshal query", "err", err)
-		//queryResult.dataResponse.Error = err
 		panic("Could not unmarshal query")
 	}
 
 	if qm.QueryText == "" {
-		//log.DefaultLogger.Error("SQL query must no be empty")
-		//queryResult.dataResponse.Error = fmt.Errorf("SQL query must no be empty")
 		panic("Query model property rawSql should not be empty at this point")
 	}
 
