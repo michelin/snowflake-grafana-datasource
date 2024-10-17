@@ -4,6 +4,7 @@
 
 ### ⭐ Added
 - Add configuration for `MaxChunkDownloadWorkers` and `CustomJSONDecoderEnabled`.
+- Add `$__timeRoundFrom()` and `$__timeRoundTo()` macros
 
 ### 🐞 Bug Fixes
 - Avoid interpolation of Snowflake SYSTEM functions.
@@ -14,6 +15,10 @@
 - Upgrade grafana-plugin-sdk-go to version v0.255.0.
 - Upgrade go to version 1.22.
 - Upgrade js dependencies.
+
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@MrLight](https://github.com/MrLight)
 
 ## 1.7.1
 
