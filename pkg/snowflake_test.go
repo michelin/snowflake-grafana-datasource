@@ -18,6 +18,22 @@ func TestGetConfig(t *testing.T) {
 		err      string
 	}{
 		{json: "{}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"ConnectionLifetime\": \"10\"}", config: pluginConfig{ConnectionLifetime: "10", IntConnectionLifetime: 10, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"ConnectionLifetime\": \"-10\"}", config: pluginConfig{ConnectionLifetime: "-10", IntConnectionLifetime: -10, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"ConnectionLifetime\": \"test\"}", err: "strconv.Atoi: parsing \"test\": invalid syntax"},
+		{json: "{\"ConnectionLifetime\": \"1.5\"}", err: "strconv.Atoi: parsing \"1.5\": invalid syntax"},
+		{json: "{\"ConnectionLifetime\": \"1,5\"}", err: "strconv.Atoi: parsing \"1,5\": invalid syntax"},
+		{json: "{\"MaxOpenConnections\": \"10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "10", IntMaxOpenConnections: 10, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"MaxOpenConnections\": \"-10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "-10", IntMaxOpenConnections: -10, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"MaxOpenConnections\": \"test\"}", err: "strconv.Atoi: parsing \"test\": invalid syntax"},
+		{json: "{\"MaxOpenConnections\": \"1.5\"}", err: "strconv.Atoi: parsing \"1.5\": invalid syntax"},
+		{json: "{\"MaxOpenConnections\": \"1,5\"}", err: "strconv.Atoi: parsing \"1,5\": invalid syntax"},
+		{json: "{\"MaxQueuedQueries\": \"10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "10", IntMaxQueuedQueries: 10}},
+		{json: "{\"MaxQueuedQueries\": \"-10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "-10", IntMaxQueuedQueries: -10}},
+		{json: "{\"MaxQueuedQueries\": \"test\"}", err: "strconv.Atoi: parsing \"test\": invalid syntax"},
+		{json: "{\"MaxQueuedQueries\": \"1.5\"}", err: "strconv.Atoi: parsing \"1.5\": invalid syntax"},
+		{json: "{\"MaxQueuedQueries\": \"1,5\"}", err: "strconv.Atoi: parsing \"1,5\": invalid syntax"},
+		{json: "{\"account\":\"test\", \"ConnectionLifetime\":\"8\", \"MaxOpenConnections\":\"9\", \"MaxQueuedQueries\": \"10\"}", config: pluginConfig{Account: "test", ConnectionLifetime: "8", IntConnectionLifetime: 8, MaxOpenConnections: "9", IntMaxOpenConnections: 9, MaxQueuedQueries: "10", IntMaxQueuedQueries: 10}},
 		{json: "{\"account\":\"test\"}", config: pluginConfig{Account: "test", ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
 		{json: "{", err: "unexpected end of JSON input"},
 	}
