@@ -10,19 +10,7 @@ interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> { }
 interface State { }
 
 export class ConfigEditor extends PureComponent<Props, State> {
-  componentDidMount() {
-    const { onOptionsChange, options } = this.props;
-    if (options.jsonData.maxOpenConnections === ""){
-      const jsonData = {
-        ...options.jsonData,
-        maxOpenConnections: "100",
-        maxQueuedQueries:"400",
-        connectionLifetime: "60",
-        
-      };
-      onOptionsChange({ ...options, jsonData });
-    }
-  }
+
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
 
@@ -356,6 +344,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
           labelWidth={30}
           label="Connection lifetime [min]"
           tooltip="How long open connections are hold to be reused in minutes. (default=60 | 0=never close)" >
+          
           <Input
             type="number"
             className="width-20"
