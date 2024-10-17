@@ -57,8 +57,8 @@ type queryModel struct {
 	FillMode    string   `json:"fillMode"`
 }
 
-func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
-	connectionString := getConnectionString(config, password, privateKey)
+func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string, token string) (result DataQueryResult, err error) {
+	connectionString := getConnectionString(config, password, privateKey, token)
 
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
