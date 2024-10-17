@@ -63,6 +63,9 @@ Available configuration fields are as follows:
  Database (Optional)      | Specifies the default database to use once connected. 
  Schema (Optional)        | Specifies the default schema to use for the specified database once connected. 
  Extra Options (Optional) | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string. 
+ max. open Connections    | How many connections to snowflake are opened at a time. If the limit of open connections is exceeded newer queries will be cached in the queue. [default: 100]
+ max. queued Queries      | Queue size of the internal query queue. If this limit is exceeded the query will be dropped and and error is thrown. Should always be higher as `max. open Connections`. 0 to disable. [default: 400] 
+ Connection lifetime      | Time in minutes until unnused connections are recycled. [default: 60min]
 
 #### Supported Macros
 

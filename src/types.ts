@@ -29,6 +29,9 @@ export interface SnowflakeOptions extends DataSourceJsonData {
   schema?: string;
   extraConfig?: string;
   basicAuth: boolean;
+  maxOpenConnections?: string;
+  maxQueuedQueries?: string;
+  connectionLifetime?: string;
 }
 
 /**
