@@ -1,5 +1,5 @@
 import React, { ChangeEvent, PureComponent } from 'react';
-import { LegacyForms } from '@grafana/ui';
+import {Checkbox, ControlledCollapse, LegacyForms} from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
 
@@ -63,6 +63,24 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const jsonData = {
       ...options.jsonData,
       extraConfig: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
+  onMaxChunkDownloadWorkersChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxChunkDownloadWorkers: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
+  onCustomJSONDecoderEnabledChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      customJSONDecoderEnabled: event.target.checked,
     };
     onOptionsChange({ ...options, jsonData });
   };
@@ -153,125 +171,145 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const secureJsonData = (options.secureJsonData || {}) as SnowflakeSecureOptions;
 
     return (
-      <div className="gf-form-group">
-        <h3 className="page-heading">Connection</h3>
+        <div className="gf-form-group">
+          <h3 className="page-heading">Connection</h3>
 
-        <div className="gf-form">
-          <FormField
-            label="Account name"
-            labelWidth={10}
-            inputWidth={30}
-            onChange={this.onAccountChange}
-            tooltip="All access to Snowflake is either through your account name (provided by Snowflake) or a URL that uses the following format: `xxxxx.snowflakecomputing.com`"
-            value={jsonData.account || ''}
-            placeholder="xxxxxx.snowflakecomputing.com"
-          />
-        </div>
-
-        <div className="gf-form">
-          <FormField
-            label="Username"
-            labelWidth={10}
-            inputWidth={20}
-            onChange={this.onUsernameChange}
-            value={jsonData.username || ''}
-            placeholder="Username"
-          />
-        </div>
-
-        <div className="gf-form">
-          <Switch
-            label="basic or key pair authentication"
-            checked={jsonData.basicAuth}
-            onChange={this.onAuthenticationChange}
-          />
-        </div>
-        <div className="gf-form">
-          {!jsonData.basicAuth && (
-            <SecretFormField
-              isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
-              value={secureJsonData.password || ''}
-              label="Password"
-              placeholder="password"
-              labelWidth={10}
-              inputWidth={20}
-              onReset={this.onResetPassword}
-              onChange={this.onPasswordChange}
+          <div className="gf-form">
+            <FormField
+                label="Account name"
+                labelWidth={10}
+                inputWidth={30}
+                onChange={this.onAccountChange}
+                tooltip="All access to Snowflake is either through your account name (provided by Snowflake) or a URL that uses the following format: `xxxxx.snowflakecomputing.com`"
+                value={jsonData.account || ''}
+                placeholder="xxxxxx.snowflakecomputing.com"
             />
-          )}
-          {jsonData.basicAuth && (
-            <SecretFormField
-              isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
-              value={secureJsonData.privateKey || ''}
-              tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
-              label="Private key"
-              placeholder="MIIB..."
-              labelWidth={10}
-              inputWidth={20}
-              onReset={this.onResetPrivateKey}
-              onChange={this.onPrivateKeyChange}
+          </div>
+
+          <div className="gf-form">
+            <FormField
+                label="Username"
+                labelWidth={10}
+                inputWidth={20}
+                onChange={this.onUsernameChange}
+                value={jsonData.username || ''}
+                placeholder="Username"
             />
-          )}
-        </div>
-        <div className="gf-form">
-          <FormField
-            label="Role"
-            labelWidth={10}
-            inputWidth={20}
-            onChange={this.onRoleChange}
-            value={jsonData.role || ''}
-            placeholder="Role"
-          />
-        </div>
-        <br />
-        <h3 className="page-heading">Parameter configuration</h3>
+          </div>
 
-        <div className="gf-form">
-          <FormField
-            label="Warehouse"
-            labelWidth={10}
-            inputWidth={20}
-            onChange={this.onWarehouseChange}
-            value={jsonData.warehouse || ''}
-            placeholder="Default warehouse"
-          />
-        </div>
+          <div className="gf-form">
+            <Switch
+                label="basic or key pair authentication"
+                checked={jsonData.basicAuth}
+                onChange={this.onAuthenticationChange}
+            />
+          </div>
+          <div className="gf-form">
+            {!jsonData.basicAuth && (
+                <SecretFormField
+                    isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
+                    value={secureJsonData.password || ''}
+                    label="Password"
+                    placeholder="password"
+                    labelWidth={10}
+                    inputWidth={20}
+                    onReset={this.onResetPassword}
+                    onChange={this.onPasswordChange}
+                />
+            )}
+            {jsonData.basicAuth && (
+                <SecretFormField
+                    isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
+                    value={secureJsonData.privateKey || ''}
+                    tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
+                    label="Private key"
+                    placeholder="MIIB..."
+                    labelWidth={10}
+                    inputWidth={20}
+                    onReset={this.onResetPrivateKey}
+                    onChange={this.onPrivateKeyChange}
+                />
+            )}
+          </div>
+          <div className="gf-form">
+            <FormField
+                label="Role"
+                labelWidth={10}
+                inputWidth={20}
+                onChange={this.onRoleChange}
+                value={jsonData.role || ''}
+                placeholder="Role"
+            />
+          </div>
+          <br/>
+          <h3 className="page-heading">Parameter configuration</h3>
 
-        <div className="gf-form">
-          <FormField
-            label="Database"
-            labelWidth={10}
-            inputWidth={20}
-            onChange={this.onDatabaseChange}
-            value={jsonData.database || ''}
-            placeholder="Default database"
-          />
-        </div>
+          <div className="gf-form">
+            <FormField
+                label="Warehouse"
+                labelWidth={10}
+                inputWidth={20}
+                onChange={this.onWarehouseChange}
+                value={jsonData.warehouse || ''}
+                placeholder="Default warehouse"
+            />
+          </div>
 
-        <div className="gf-form">
-          <FormField
-            label="Schema"
-            labelWidth={10}
-            inputWidth={20}
-            onChange={this.onSchemaChange}
-            value={jsonData.schema || ''}
-            placeholder="Default Schema"
-          />
-        </div>
-        <br />
-        <h3 className="page-heading">Session configuration</h3>
+          <div className="gf-form">
+            <FormField
+                label="Database"
+                labelWidth={10}
+                inputWidth={20}
+                onChange={this.onDatabaseChange}
+                value={jsonData.database || ''}
+                placeholder="Default database"
+            />
+          </div>
 
-        <div className="gf-form">
-          <FormField
-            label="Extra options"
-            labelWidth={10}
-            inputWidth={30}
-            onChange={this.onExtraOptionChange}
-            value={jsonData.extraConfig || ''}
-            placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
-          />
+          <div className="gf-form">
+            <FormField
+                label="Schema"
+                labelWidth={10}
+                inputWidth={20}
+                onChange={this.onSchemaChange}
+                value={jsonData.schema || ''}
+                placeholder="Default Schema"
+            />
+          </div>
+          <br/>
+          <h3 className="page-heading">Session configuration</h3>
+
+          <div className="gf-form">
+            <FormField
+                label="Extra options"
+                labelWidth={10}
+                inputWidth={30}
+                onChange={this.onExtraOptionChange}
+                value={jsonData.extraConfig || ''}
+                placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
+            />
+          </div>
+          <br/>
+          <ControlledCollapse label="Experimental">
+            <div className="gf-form">
+              <FormField
+                  label="Max Chunk Download Workers"
+                  labelWidth={15}
+                  inputWidth={3}
+                  onChange={this.onMaxChunkDownloadWorkersChange}
+                  value={jsonData.maxChunkDownloadWorkers || '10'}
+              />
+            </div>
+            <br/>
+            <div className="gf-form">
+                <Checkbox
+                    value={jsonData.customJSONDecoderEnabled}
+                    onChange={this.onCustomJSONDecoderEnabledChange}
+                    label="Enable Custom JSON Decoder"
+                    />
+            </div>
+          </ControlledCollapse>
         </div>
-      </div>
     );
   }
 }

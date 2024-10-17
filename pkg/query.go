@@ -14,7 +14,6 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	sf "github.com/snowflakedb/gosnowflake"
 )
 
 const rowLimit = 1000000
@@ -59,10 +58,6 @@ type queryModel struct {
 }
 
 func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
-	// Custom configuration to reduce memory footprint
-	sf.MaxChunkDownloadWorkers = 2
-	sf.CustomJSONDecoderEnabled = true
-
 	connectionString := getConnectionString(config, password, privateKey)
 
 	db, err := sql.Open("snowflake", connectionString)

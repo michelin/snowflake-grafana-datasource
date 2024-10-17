@@ -2,13 +2,18 @@
 
 ## 1.8.0
 
+### ⭐ Added
+- Add configuration for `MaxChunkDownloadWorkers` and `CustomJSONDecoderEnabled`.
+
 ### 🐞 Bug Fixes
 - Avoid interpolation of Snowflake SYSTEM functions.
 - Improve error handling when specific macro parameters are left empty.
 
 ### 🔨 Changed
 - Improve unit tests coverage.
-- Upgrade grafana-plugin-sdk-go to version v0.251.0.
+- Upgrade grafana-plugin-sdk-go to version v0.255.0.
+- Upgrade go to version 1.22.
+- Upgrade js dependencies.
 
 ## 1.7.1
 
