@@ -1,6 +1,6 @@
 {
   "name": "michelin-snowflake-datasource",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Data source for Snowflake",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
@@ -65,10 +65,10 @@
   },
   "dependencies": {
     "@emotion/css": "11.10.6",
-    "@grafana/data": "^11.2.2",
-    "@grafana/runtime": "^11.2.2",
-    "@grafana/schema": "^11.2.2",
-    "@grafana/ui": "^11.2.2",
+    "@grafana/data": "^11.3.0",
+    "@grafana/runtime": "^11.3.0",
+    "@grafana/schema": "^11.3.0",
+    "@grafana/ui": "^11.3.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "sql-formatter": "^15.2.0",
