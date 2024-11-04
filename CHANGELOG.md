@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.1
+
+### 🔨 Changed
+- Upgrade grafana-plugin-sdk-go to version v0.258.0.
+- Upgrade gosnowflake to version v1.12.0.
+- Upgrade js dependencies.
+
 ## 1.8.0
 
 ### ⭐ Added
