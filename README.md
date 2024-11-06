@@ -1,6 +1,7 @@
 # Snowflake Grafana Data Source
 
-[![Build](https://github.com/michelin/snowflake-grafana-datasource/workflows/CI/badge.svg)](https://github.com/michelin/snowflake-grafana-datasource/actions?query=workflow%3A%22CI%22)
+[![Build](https://github.com/michelin/snowflake-grafana-datasource/actions/workflows/ci.yml/badge.svg)](https://github.com/michelin/snowflake-grafana-datasource/actions/workflows/ci.yml) 
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=michelin_snowflake-grafana-datasource&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=michelin_snowflake-grafana-datasource) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=michelin_snowflake-grafana-datasource&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=michelin_snowflake-grafana-datasource)[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=michelin_snowflake-grafana-datasource&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=michelin_snowflake-grafana-datasource) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=michelin_snowflake-grafana-datasource&metric=coverage)](https://sonarcloud.io/summary/new_code?id=michelin_snowflake-grafana-datasource)
 
 With the Snowflake plugin, you can visualize your Snowflake data in Grafana and build awesome chart.
 
