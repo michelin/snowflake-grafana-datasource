@@ -67,12 +67,6 @@ jobs:
           version: latest
           args: coverage
 
-      - name: Convert coverage to lcov
-        uses: jandelgado/gcov2lcov-action@v1
-        with:
-          outfile: coverage.lcov
-          working-directory: coverage
-
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v3.1.0
         env:
