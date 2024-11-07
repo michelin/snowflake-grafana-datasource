@@ -67,6 +67,11 @@ jobs:
           version: latest
           args: coverage
 
+      - name: Convert coverage to lcov format
+        run: |
+          go install github.com/jandelgado/gocov2lcov@latest
+          gocov convert coverage/coverage.out | gocov2lcov > coverage/lcov.info
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v3.1.0
         env:
