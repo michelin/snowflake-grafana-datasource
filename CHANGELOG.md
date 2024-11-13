@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.0
+
+### ⭐ Added
+- Add support of OAuth authentication.
+
+### 🔨 Changed
+- Rewrite the datasource configuration UI (ease authentication selection).
+- Support non encoded private key in the datasource configuration.
+
 ## 1.8.1
 
 ### 🔨 Changed

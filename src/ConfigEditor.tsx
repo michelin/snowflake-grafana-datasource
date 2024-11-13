@@ -1,28 +1,71 @@
-import React, { ChangeEvent, PureComponent } from 'react';
-import {Checkbox, ControlledCollapse, LegacyForms} from '@grafana/ui';
-import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
+import React, {ChangeEvent, PureComponent} from 'react';
+import {Checkbox, ControlledCollapse, LegacyForms, RadioButtonGroup, InlineLabel } from '@grafana/ui';
+import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
+import { useSearchParams } from 'react-router-dom';
 
-const { SecretFormField, FormField, Switch } = LegacyForms;
+
+const { SecretFormField, FormField } = LegacyForms;
 
 interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> {}
 
-interface State {}
+interface State {
+  authMethod: string;
+}
+
+const authOptions = [
+  { label: 'Password', value: 'password' },
+  { label: 'Key Pair', value: 'keyPair' },
+  { label: 'OAuth', value: 'oauth' },
+];
 
 export class ConfigEditor extends PureComponent<Props, State> {
+
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      authMethod: this.props.options.jsonData.authMethod || authOptions[0].value,
+    };
+  }
+
+  onAuthMethodChange = (value: string) => {
+    const { onOptionsChange, options } = this.props;
+    const authMethod = value || 'password';
+    this.setState({ authMethod: authMethod });
+    const jsonData = {
+      ...options.jsonData,
+      authMethod,
+    };
+
+    onOptionsChange({
+      ...options,
+      jsonData,
+      secureJsonFields: {
+        ...options.secureJsonFields,
+        password: false,
+        privateKey: false,
+        clientSecret: false,
+      },
+      secureJsonData: {
+        ...options.secureJsonData,
+        password: '',
+        privateKey: '',
+        clientSecret: '',
+        clientId: ''
+      },
+    });
+  };
+
   onAccountChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
 
-    let value;
-    if (event.target.value.includes('.snowflakecomputing.com')) {
-      value = event.target.value;
-    } else {
-      value = event.target.value + '.snowflakecomputing.com';
+    let value = event.target.value.trim();
+    if (!value.includes('.snowflakecomputing.com')) {
+      value += '.snowflakecomputing.com';
     }
 
     // Sanitize value to avoid error
-    const regex = new RegExp('https?://');
-    value = value.replace(regex, '');
+    value = value.replace(/^https?:\/\//, '');
 
     const jsonData = {
       ...options.jsonData,
@@ -94,15 +137,6 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({ ...options, jsonData });
   };
 
-  onAuthenticationChange = (event: React.SyntheticEvent<HTMLInputElement>) => {
-    const { onOptionsChange, options } = this.props;
-    const jsonData = {
-      ...options.jsonData,
-      basicAuth: (event.target as HTMLInputElement).checked,
-    };
-    onOptionsChange({ ...options, jsonData });
-  };
-
   onSchemaChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     const jsonData = {
@@ -118,8 +152,8 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({
       ...options,
       secureJsonData: {
+        ...options.secureJsonData,
         password: event.target.value,
-        privateKey: '',
       },
     });
   };
@@ -141,11 +175,25 @@ export class ConfigEditor extends PureComponent<Props, State> {
 
   onPrivateKeyChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
+    let privateKey = event.target.value;
+
+    // If the private key is not in the correct format, try to convert it
+    if (!/^[A-Za-z0-9\-_]+$/.test(privateKey) && privateKey !== '') {
+
+      // Remove the PEM header and footer
+      privateKey = privateKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g, '');
+
+      // Remove all newline and space characters
+      privateKey = privateKey.replace(/\n|\r|\s/g, '');
+
+      // Replace + with - and / with _
+      privateKey = privateKey.replace(/\+/g, '-').replace(/\//g, '_');
+    }
     onOptionsChange({
       ...options,
       secureJsonData: {
-        privateKey: event.target.value,
-        password: '',
+        ...options.secureJsonData,
+        privateKey: privateKey,
       },
     });
   };
@@ -165,10 +213,54 @@ export class ConfigEditor extends PureComponent<Props, State> {
     });
   };
 
+  onClientIdChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      clientId: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
+  onClientSecretChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      secureJsonData: {
+        ...options.secureJsonData,
+        clientSecret: event.target.value,
+      },
+    });
+  };
+
+  loginWithSnowflake = () => {
+    const { options } = this.props;
+    let clientId = encodeURIComponent((options.jsonData as SnowflakeOptions).clientId || '');
+    let redirectUrl = window.location.origin + '/connections/datasources/edit/' + options.uid;
+    window.location.replace('https://'+options.jsonData.account+'/oauth/authorize?response_type=code&client_id='+ clientId +'&redirect_uri='+encodeURIComponent(redirectUrl));
+  }
+
+  onResetClientSecret = () => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      secureJsonFields: {
+        ...options.secureJsonFields,
+        clientSecret: false,
+      },
+      secureJsonData: {
+        ...options.secureJsonData,
+        clientSecret: ''
+      },
+    });
+  };
+
   render() {
     const { options } = this.props;
     const { jsonData, secureJsonFields } = options;
     const secureJsonData = (options.secureJsonData || {}) as SnowflakeSecureOptions;
+    const { authMethod } = this.state;
+    const [searchParams] = useSearchParams();
 
     return (
         <div className="gf-form-group">
@@ -187,43 +279,48 @@ export class ConfigEditor extends PureComponent<Props, State> {
           </div>
 
           <div className="gf-form">
-            <FormField
-                label="Username"
-                labelWidth={10}
-                inputWidth={20}
-                onChange={this.onUsernameChange}
-                value={jsonData.username || ''}
-                placeholder="Username"
+            <InlineLabel width={20}>Authentications method</InlineLabel>
+            <RadioButtonGroup
+                options={authOptions}
+                value={authMethod}
+                onChange={this.onAuthMethodChange}
             />
           </div>
 
-          <div className="gf-form">
-            <Switch
-                label="basic or key pair authentication"
-                checked={jsonData.basicAuth}
-                onChange={this.onAuthenticationChange}
-            />
-          </div>
-          <div className="gf-form">
-            {!jsonData.basicAuth && (
-                <SecretFormField
-                    isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
-                    value={secureJsonData.password || ''}
-                    label="Password"
-                    placeholder="password"
+          { authMethod !== 'oauth' && (
+              <div className="gf-form">
+                    <FormField
+                    label="Username"
                     labelWidth={10}
                     inputWidth={20}
-                    onReset={this.onResetPassword}
-                    onChange={this.onPasswordChange}
+                    onChange={this.onUsernameChange}
+                    value={jsonData.username || ''}
+                    placeholder="Username"
+                    tooltip="The snowflake account username"
                 />
+              </div>
+          )}
+          <div className="gf-form">
+            {authMethod === 'password' && (
+                  <SecretFormField
+                      isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
+                      value={secureJsonData.password || ''}
+                      label="Password"
+                      placeholder="password"
+                      labelWidth={10}
+                      inputWidth={20}
+                      onReset={this.onResetPassword}
+                      onChange={this.onPasswordChange}
+                      tooltip="The snowflake account password"
+                  />
             )}
-            {jsonData.basicAuth && (
+            {authMethod === 'keyPair' && (
                 <SecretFormField
                     isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
                     value={secureJsonData.privateKey || ''}
-                    tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
+                    tooltip="The private key"
                     label="Private key"
-                    placeholder="MIIB..."
+                    placeholder="-----BEGIN PRIVATE KEY-----"
                     labelWidth={10}
                     inputWidth={20}
                     onReset={this.onResetPrivateKey}
@@ -231,6 +328,41 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 />
             )}
           </div>
+            {authMethod === 'oauth' && (
+                <div>
+                  <div className="gf-form">
+                    <FormField
+                        value={jsonData.clientId || ''}
+                        tooltip="Oauth client ID"
+                        label="Client ID"
+                        labelWidth={10}
+                        inputWidth={20}
+                        onChange={this.onClientIdChange}
+                    />
+                  </div>
+                  <div className="gf-form">
+                    <SecretFormField
+                        isConfigured={(secureJsonFields && secureJsonFields.clientSecret) as boolean}
+                        value={secureJsonData.clientSecret || ''}
+                        tooltip="Oauth Client Secret"
+                        label="Client Secret"
+                        placeholder=""
+                        labelWidth={10}
+                        inputWidth={20}
+                        onReset={this.onResetClientSecret}
+                        onChange={this.onClientSecretChange}
+                    />
+                  </div>
+                </div>
+            )}
+          { !searchParams.has('code') && authMethod === 'oauth' && (
+              <button
+                  onClick={this.loginWithSnowflake}
+              >
+                Login with Snowflake
+              </button>
+          )}
+
           <div className="gf-form">
             <FormField
                 label="Role"
@@ -239,6 +371,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 onChange={this.onRoleChange}
                 value={jsonData.role || ''}
                 placeholder="Role"
+                tooltip="Global role to use for the connection"
             />
           </div>
           <br/>
@@ -252,6 +385,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 onChange={this.onWarehouseChange}
                 value={jsonData.warehouse || ''}
                 placeholder="Default warehouse"
+                tooltip="Warehouse to use for the connection"
             />
           </div>
 
@@ -263,6 +397,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 onChange={this.onDatabaseChange}
                 value={jsonData.database || ''}
                 placeholder="Default database"
+                tooltip="Database to use for the connection"
             />
           </div>
 
@@ -274,6 +409,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 onChange={this.onSchemaChange}
                 value={jsonData.schema || ''}
                 placeholder="Default Schema"
+                tooltip="Schema to use for the connection"
             />
           </div>
           <br/>
@@ -287,6 +423,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 onChange={this.onExtraOptionChange}
                 value={jsonData.extraConfig || ''}
                 placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
+                tooltip="Extra connection parameters to use for the connection"
             />
           </div>
           <br/>

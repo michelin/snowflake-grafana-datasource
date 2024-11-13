@@ -20,7 +20,8 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 		return result, nil
 	}
 	// Use the existing db field instead of opening a new connection
-	if td.db == nil {
+	// check if the db is open
+	if td.db == nil || td.db.Ping() != nil {
 		var err error
 		td.db, err = sql.Open("snowflake", connectionString)
 		if err != nil {
@@ -51,11 +52,30 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 func createAndValidationConnectionString(req *backend.CheckHealthRequest) (string, *backend.CheckHealthResult) {
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	oauth := Oauth{
+		clientId:      req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientId"],
+		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		tokenEndpoint: req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["tokenEndpoint"],
+	}
 
-	if password == "" && privateKey == "" {
+	if password == "" && privateKey == "" && oauth.clientSecret == "" {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
-			Message: "Password or private key are required.",
+			Message: "Password or private key or Oauth fields are required.",
+		}
+	}
+
+	if (password != "" && (privateKey != "" || oauth.clientSecret != "")) || (privateKey != "" && oauth.clientSecret != "") {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: "Only one authentication method must be provided.",
+		}
+	}
+
+	if password == "" && privateKey == "" && (oauth.clientSecret == "" || oauth.clientId == "" || oauth.tokenEndpoint == "") {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: "All Oauth fields are required.",
 		}
 	}
 
@@ -74,7 +94,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		}
 	}
 
-	if config.Username == "" {
+	if config.Username == "" && (password != "" || privateKey != "") {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: "Username not provided",
@@ -87,6 +107,14 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		config.ExtraConfig = "validateDefaultParameters=true"
 	}
 
-	connectionString := getConnectionString(&config, password, privateKey)
+	token, err := getToken(oauth, true)
+	if err != nil {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: fmt.Sprintf("Error getting token: %s", err),
+		}
+	}
+
+	connectionString := getConnectionString(&config, password, privateKey, token)
 	return connectionString, nil
 }
