@@ -20,7 +20,7 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 		return result, nil
 	}
 	// Use the existing db field instead of opening a new connection
-	if td.db == nil {
+	if td.db == nil || td.db.Ping() != nil {
 		var err error
 		td.db, err = sql.Open("snowflake", connectionString)
 		if err != nil {

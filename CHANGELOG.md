@@ -2,6 +2,9 @@
 
 ## 1.8.1
 
+### 🐞 Bug Fixes
+- Resolve the issue of reusing closed connections.
+
 ### 🔨 Changed
 - Upgrade grafana-plugin-sdk-go to version v0.258.0.
 - Upgrade gosnowflake to version v1.12.0.
