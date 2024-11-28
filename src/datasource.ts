@@ -3,6 +3,7 @@ import { DataQueryRequest, DataFrame, MetricFindValue, DataSourceInstanceSetting
 import { SnowflakeQuery, SnowflakeOptions } from './types';
 import { switchMap, map } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';
+import { uniqBy } from 'lodash';
 
 export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<SnowflakeOptions>) {
@@ -41,14 +42,25 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
           }
           return response.data;
         }),
-        switchMap((data: DataFrame) => {
-          return data.fields;
-        }),
-        map((field) =>
-          field.values.toArray().map((value) => {
-            return { text: value };
-          })
-        )
+        map((data: DataFrame) => {
+          const values: MetricFindValue[] = [];
+          const textField = data.fields.find((f) => f.name.toLowerCase() === '__text');
+          const valueField = data.fields.find((f) => f.name.toLowerCase() === '__value');
+
+          if (textField && valueField) {
+            for (let i = 0; i < textField.values.length; i++) {
+              values.push({ text: '' + textField.values[i], value: '' + valueField.values[i] });
+            }
+          } else {
+            for (const field of data.fields) {
+              for (const value of field.values) {
+                values.push({ text: value });
+              }
+            }
+          }
+
+          return uniqBy(values, 'text');
+        })
       ));
   }
 }

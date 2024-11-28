@@ -2,6 +2,9 @@
 
 ## 1.8.1
 
+### ⭐ Added
+- Template Variable: custom “display names” support with `__text` & `__value`
+
 ### 🐞 Bug Fixes
 - Resolve the issue of reusing closed connections.
 
