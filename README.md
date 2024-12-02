@@ -145,13 +145,12 @@ SELECT column FROM table WHERE column in ${variable:regex}
 SELECT column FROM table WHERE column in (test1|test2)
 ```
 
-Add a Template Variable:
-You can use a SQL Query to define a template Variable (https://grafana.com/docs/grafana/latest/dashboards/variables/add-template-variables/#add-a-query-variable)
-Add __text and __value columns to your query to support custom "display names"
+Add a Template Variable:<br/>
+You can use a SQL Query to define a [Template Variable](https://grafana.com/docs/grafana/latest/dashboards/variables/add-template-variables/#add-a-query-variable)<br/>
 ```sql
+-- Add __text and __value columns to your query to support custom "display names"
 SELECT value_column as __value, text_column as __text FROM table 
 ```
-
 
 ##### Layout of a query
 
