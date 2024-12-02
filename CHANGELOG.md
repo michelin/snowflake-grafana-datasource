@@ -5,6 +5,18 @@
 ### ⭐ Added
 - Template Variable: custom “display names” support with `__text` & `__value`
 
+### 🐞 Bug Fixes
+- Resolve the issue with incorrect password escaping for certain special characters.
+
+### 🔨 Changed
+- Upgrade grafana-plugin-sdk-go to version v0.260.1.
+- Upgrade js dependencies.
+
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@a2intl](https://github.com/a2intl)
+- [@MrLight](https://github.com/MrLight)
+
 ## 1.8.1
 
 ### 🐞 Bug Fixes
