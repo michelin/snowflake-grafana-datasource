@@ -2,7 +2,8 @@
 
 ## 2.0.0 (not released yet)
 
-
+### 🔨 Changed
+- Remove deprecated UI components
 
 ## 1.9.0
 
