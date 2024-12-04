@@ -14,6 +14,7 @@ export class QueryEditor extends PureComponent<Props> {
   onQueryTextChange = (newQuery: string) => {
     const { onChange, query } = this.props;
     onChange({ ...query, queryText: newQuery });
+    this.props.onRunQuery();
   };
 
   onFormat = () => {
@@ -97,13 +98,11 @@ export class QueryEditor extends PureComponent<Props> {
           <div>
             <CodeEditor
               value={queryText ?? ''}
-              onBlur={this.props.onRunQuery}
-              onChange={this.onQueryTextChange}
+              onBlur={this.onQueryTextChange}
               language="sql"
               showLineNumbers={true}
               height={'200px'}
               showMiniMap={false}
-              onSave={this.props.onRunQuery}
             />
             <Button variant="secondary" icon="repeat" onClick={this.onFormat}>Format Query</Button>
           </div>

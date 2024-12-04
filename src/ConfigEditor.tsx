@@ -215,7 +215,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
               <InlineField label="Password"
                            labelWidth={LABEL_WIDTH}>
                 <SecretInput
-                    isConfigured={(secureJsonFields?.password) as boolean}
+                    isConfigured={secureJsonFields?.password}
                     value={secureJsonData.password ?? ''}
                     placeholder="password"
                     width={INPUT_WIDTH}
@@ -229,7 +229,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                            tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
                            labelWidth={LABEL_WIDTH}>
                 <SecretTextArea
-                    isConfigured={(secureJsonFields?.privateKey) as boolean}
+                    isConfigured={secureJsonFields?.privateKey}
                     value={secureJsonData.privateKey ?? ''}
                     placeholder="MIIB..."
                     onReset={this.onResetPrivateKey}

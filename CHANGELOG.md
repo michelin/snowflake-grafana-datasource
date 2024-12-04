@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (not released yet)
+## 1.9.1
 
 ### 🔨 Changed
 - Remove deprecated UI components
