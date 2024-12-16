@@ -11,7 +11,7 @@ import (
 )
 
 // AddQueryTagInfos Add Query Tag Infos to the context
-func AddQueryTagInfos(ctx context.Context) context.Context {
+func AddQueryTagInfos(ctx context.Context, qc *data.QueryConfigStruct) context.Context {
 	// Extract plugin config
 	pluginConfig := backend.PluginConfigFromContext(ctx)
 
@@ -33,26 +33,6 @@ func AddQueryTagInfos(ctx context.Context) context.Context {
 		grafanaDatasourceID = pluginConfig.DataSourceInstanceSettings.UID
 	}
 
-	queryTagData := map[string]interface{}{
-		"pluginVersion":  pluginConfig.PluginVersion,
-		"grafanaVersion": grafanaVersion,
-		"grafanaHost":    grafanaHost,
-		"grafanaOrgId":   pluginConfig.OrgID,
-		"datasourceId":   grafanaDatasourceID,
-	}
-	queryTag, err := json.Marshal(queryTagData)
-	if err != nil {
-		log.DefaultLogger.Error("could not marshal json: %s\n", err)
-		return ctx
-	}
-	return gosnowflake.WithQueryTag(ctx, string(queryTag))
-}
-
-// Enrich the query with some data in the context
-func EnrichQueryWithContext(qc *data.QueryConfigStruct, ctx context.Context) string {
-	// Extract plugin config
-	pluginConfig := backend.PluginConfigFromContext(ctx)
-
 	// User
 	var grafanaUser = ""
 	if pluginConfig.User != nil {
@@ -60,15 +40,20 @@ func EnrichQueryWithContext(qc *data.QueryConfigStruct, ctx context.Context) str
 	}
 
 	queryTagData := map[string]interface{}{
-		"queryType":   qc.QueryType,
-		"from":        qc.TimeRange.From.Format(time.RFC3339),
-		"to":          qc.TimeRange.To.Format(time.RFC3339),
-		"grafanaUser": grafanaUser,
+		"pluginVersion":  pluginConfig.PluginVersion,
+		"grafanaVersion": grafanaVersion,
+		"grafanaHost":    grafanaHost,
+		"grafanaOrgId":   pluginConfig.OrgID,
+		"datasourceId":   grafanaDatasourceID,
+		"queryType":      qc.QueryType,
+		"from":           qc.TimeRange.From.Format(time.RFC3339),
+		"to":             qc.TimeRange.To.Format(time.RFC3339),
+		"grafanaUser":    grafanaUser,
 	}
-	queryInfo, err := json.Marshal(queryTagData)
+	queryTag, err := json.Marshal(queryTagData)
 	if err != nil {
 		log.DefaultLogger.Error("could not marshal json: %s\n", err)
-		return qc.FinalQuery
+		return ctx
 	}
-	return qc.FinalQuery + "\n--" + string(queryInfo)
+	return gosnowflake.WithQueryTag(ctx, string(queryTag))
 }

@@ -52,7 +52,7 @@ func fetchData(ctx context.Context, qc *_data.QueryConfigStruct, config *pluginC
 	defer db.Close()
 
 	log.DefaultLogger.Info("Query", "finalQuery", qc.FinalQuery)
-	rows, err := db.QueryContext(utils.AddQueryTagInfos(ctx), utils.EnrichQueryWithContext(qc, ctx))
+	rows, err := db.QueryContext(utils.AddQueryTagInfos(ctx, qc), qc.FinalQuery)
 	if err != nil {
 		if strings.Contains(err.Error(), "000605") {
 			log.DefaultLogger.Info("Query got cancelled", "query", qc.FinalQuery, "err", err)
