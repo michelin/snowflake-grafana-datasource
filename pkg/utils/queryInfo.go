@@ -39,16 +39,18 @@ func AddQueryTagInfos(ctx context.Context, qc *data.QueryConfigStruct) context.C
 		grafanaUser = pluginConfig.User.Login
 	}
 
-	queryTagData := map[string]interface{}{
-		"pluginVersion":  pluginConfig.PluginVersion,
-		"grafanaVersion": grafanaVersion,
-		"grafanaHost":    grafanaHost,
-		"grafanaOrgId":   pluginConfig.OrgID,
-		"datasourceId":   grafanaDatasourceID,
-		"queryType":      qc.QueryType,
-		"from":           qc.TimeRange.From.Format(time.RFC3339),
-		"to":             qc.TimeRange.To.Format(time.RFC3339),
-		"grafanaUser":    grafanaUser,
+	queryTagData := data.QueryTagStruct{
+		PluginVersion: pluginConfig.PluginVersion,
+		QueryType:     qc.QueryType,
+		From:          qc.TimeRange.From.Format(time.RFC3339),
+		To:            qc.TimeRange.To.Format(time.RFC3339),
+		Grafana: data.QueryTagGrafanaStruct{
+			Version:      grafanaVersion,
+			Host:         grafanaHost,
+			OrgId:        pluginConfig.OrgID,
+			User:         grafanaUser,
+			DatasourceId: grafanaDatasourceID,
+		},
 	}
 	queryTag, err := json.Marshal(queryTagData)
 	if err != nil {

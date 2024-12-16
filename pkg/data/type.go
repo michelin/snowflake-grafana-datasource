@@ -33,3 +33,19 @@ type QueryConfigStruct struct {
 	FillMode      string
 	FillValue     float64
 }
+
+type QueryTagStruct struct {
+	PluginVersion string                `json:"pluginVersion,omitempty"`
+	QueryType     string                `json:"queryType,omitempty"`
+	From          string                `json:"from,omitempty"`
+	To            string                `json:"to,omitempty"`
+	Grafana       QueryTagGrafanaStruct `json:"grafana,omitempty"`
+}
+
+type QueryTagGrafanaStruct struct {
+	Version      string `json:"version,omitempty"`
+	Host         string `json:"host,omitempty"`
+	OrgId        int64  `json:"orgId,omitempty"`
+	User         string `json:"user,omitempty"`
+	DatasourceId string `json:"datasourceId,omitempty"`
+}

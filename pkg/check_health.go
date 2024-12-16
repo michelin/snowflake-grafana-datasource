@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -33,7 +34,7 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 	}
 	defer td.db.Close()
 
-	row, err := td.db.QueryContext(utils.AddQueryTagInfos(ctx), "SELECT 1")
+	row, err := td.db.QueryContext(utils.AddQueryTagInfos(ctx, &data.QueryConfigStruct{}), "SELECT 1")
 	if err != nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,

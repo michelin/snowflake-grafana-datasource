@@ -46,7 +46,7 @@ func TestAddQueryTagInfosWithValidPluginConfig(t *testing.T) {
 	ctx = backend.WithPluginContext(ctx, *pluginConfig)
 	ctx = AddQueryTagInfos(ctx, qc)
 	queryTag := fmt.Sprint(ctx)
-	expectedTag := `{"datasourceId":"datasource-uid","from":"2024-01-01T00:00:00Z","grafanaHost":"http://localhost:3000","grafanaOrgId":1,"grafanaUser":"test-user","grafanaVersion":"8.0.0","pluginVersion":"1.0.0","queryType":"table","to":"2024-01-02T00:00:00Z"}`
+	expectedTag := `{"pluginVersion":"1.0.0","queryType":"table","from":"2024-01-01T00:00:00Z","to":"2024-01-02T00:00:00Z","grafana":{"version":"8.0.0","host":"http://localhost:3000","orgId":1,"user":"test-user","datasourceId":"datasource-uid"}}`
 	require.Contains(t, queryTag, expectedTag)
 }
 
@@ -76,6 +76,6 @@ func TestAddQueryTagInfosWithNilConfig(t *testing.T) {
 	ctx = backend.WithPluginContext(ctx, *pluginConfig)
 	ctx = AddQueryTagInfos(ctx, qc)
 	queryTag := fmt.Sprint(ctx)
-	expectedTag := `{"datasourceId":"","from":"2024-01-01T00:00:00Z","grafanaHost":"","grafanaOrgId":1,"grafanaUser":"","grafanaVersion":"","pluginVersion":"1.0.0","queryType":"table","to":"2024-01-02T00:00:00Z"}`
+	expectedTag := `{"pluginVersion":"1.0.0","queryType":"table","from":"2024-01-01T00:00:00Z","to":"2024-01-02T00:00:00Z","grafana":{"orgId":1}}`
 	require.Contains(t, queryTag, expectedTag)
 }
