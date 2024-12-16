@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	"testing"
 	"time"
 
@@ -16,14 +17,14 @@ func TestEvaluateMacro(t *testing.T) {
 		To:   time.Now().Add(time.Minute),
 	}
 
-	configStruct := queryConfigStruct{
+	configStruct := data.QueryConfigStruct{
 		TimeRange: timeRange,
 	}
 
 	tcs := []struct {
 		args      []string
 		name      string
-		config    queryConfigStruct
+		config    data.QueryConfigStruct
 		response  string
 		err       string
 		fillMode  string
@@ -128,13 +129,13 @@ func TestEvaluateMacro(t *testing.T) {
 func TestInterpolate(t *testing.T) {
 	tests := []struct {
 		name          string
-		configStruct  *queryConfigStruct
+		configStruct  *data.QueryConfigStruct
 		expectedSQL   string
 		expectedError string
 	}{
 		{
 			name: "valid macro",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeFilter(col)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -146,7 +147,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "missing time column argument",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeFilter()",
 			},
 			expectedSQL:   "",
@@ -154,7 +155,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "valid snowflake system macro",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT SYSTEM$TYPEOF('a')",
 			},
 			expectedSQL:   "SELECT SYSTEM$TYPEOF('a')",
@@ -162,7 +163,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "unknown macro",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__unknownMacro(col)",
 			},
 			expectedSQL:   "",
@@ -170,7 +171,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundTo with default 15min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo()",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -182,7 +183,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundFrom with default 15min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom()",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -194,7 +195,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundTo with 5min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(5)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -206,7 +207,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundFrom with 5min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(5)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -218,7 +219,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundTo with 10min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(10)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -230,7 +231,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundFrom with 10min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(10)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -242,7 +243,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundTo with 30min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(30)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -254,7 +255,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundFrom with 30min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(30)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 59, 0, 0, time.UTC),
@@ -266,7 +267,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundTo with 1440min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(1440)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
@@ -278,7 +279,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "check __timeRoundFrom with 1440min",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(1440)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 59, 0, 0, time.UTC),

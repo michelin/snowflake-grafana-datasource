@@ -2,6 +2,10 @@
 
 ## 2.0.0 (not released yet)
 
+### ⭐ Added
+- Add a query tag that includes relevant Grafana context information.
+
+
 ## 1.9.1
 
 ### 🔨 Changed

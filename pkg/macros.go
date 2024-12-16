@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	"math"
 	"regexp"
 	"strconv"
@@ -30,7 +32,7 @@ func ReplaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]str
 	return result + str[lastIndex:]
 }
 
-func Interpolate(configStruct *queryConfigStruct) (string, error) {
+func Interpolate(configStruct *data.QueryConfigStruct) (string, error) {
 	rExp, _ := regexp.Compile(sExpr)
 	var macroError error
 
@@ -58,7 +60,7 @@ func Interpolate(configStruct *queryConfigStruct) (string, error) {
 	return sql, nil
 }
 
-func SetupFillmode(configStruct *queryConfigStruct, fillmode string) error {
+func SetupFillmode(configStruct *data.QueryConfigStruct, fillmode string) error {
 	switch fillmode {
 	case "NULL":
 		configStruct.FillMode = NullFill
@@ -77,7 +79,7 @@ func SetupFillmode(configStruct *queryConfigStruct, fillmode string) error {
 }
 
 // evaluateMacro convert macro expression to sql expression
-func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) (string, error) {
+func evaluateMacro(name string, args []string, configStruct *data.QueryConfigStruct) (string, error) {
 	timeRange := configStruct.TimeRange
 
 	switch name {
@@ -146,7 +148,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) < 2 {
 			return "", fmt.Errorf("macro %v needs time column and interval and optional fill value", name)
 		}
-		interval, err := ParseInterval(strings.Trim(args[1], `'`))
+		interval, err := utils.ParseInterval(strings.Trim(args[1], `'`))
 		if err != nil {
 			return "", fmt.Errorf("error parsing interval %v", args[1])
 		}
@@ -182,7 +184,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) < 2 {
 			return "", fmt.Errorf("macro %v needs time column and interval and optional fill value", name)
 		}
-		interval, err := ParseInterval(strings.Trim(args[1], `'`))
+		interval, err := utils.ParseInterval(strings.Trim(args[1], `'`))
 		if err != nil {
 			return "", fmt.Errorf("error parsing interval %v", args[1])
 		}
