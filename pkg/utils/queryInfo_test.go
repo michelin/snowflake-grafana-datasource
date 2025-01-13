@@ -48,7 +48,7 @@ func TestAddQueryTagInfosWithValidPluginConfig(t *testing.T) {
 	ctx = backend.WithPluginContext(ctx, *pluginConfig)
 	ctx = AddQueryTagInfos(ctx, qc)
 	queryTag := fmt.Sprint(ctx)
-	expectedTag := `{"pluginVersion":"1.0.0","queryType":"table","from":"2024-01-01T00:00:00Z","dashboardId":"zPFHt9ZpZz","panelId":"2","to":"2024-01-02T00:00:00Z","grafana":{"version":"8.0.0","host":"http://localhost:3000","orgId":1,"user":"test-user","datasourceId":"datasource-uid"}}`
+	expectedTag := `{"pluginVersion":"1.0.0","queryType":"table","from":"2024-01-01T00:00:00Z","to":"2024-01-02T00:00:00Z","dashboardId":"zPFHt9ZpZz","panelId":"2","grafana":{"version":"8.0.0","host":"http://localhost:3000","orgId":1,"user":"test-user","datasourceId":"datasource-uid"}}`
 	require.Contains(t, queryTag, expectedTag)
 }
 
