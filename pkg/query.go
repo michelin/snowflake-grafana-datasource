@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -17,24 +19,6 @@ import (
 )
 
 const rowLimit = 1000000
-
-const timeSeriesType = "time series"
-
-func (qc *queryConfigStruct) isTimeSeriesType() bool {
-	return qc.QueryType == timeSeriesType
-}
-
-type queryConfigStruct struct {
-	FinalQuery    string
-	QueryType     string
-	RawQuery      string
-	TimeColumns   []string
-	TimeRange     backend.TimeRange
-	Interval      time.Duration
-	MaxDataPoints int64
-	FillMode      string
-	FillValue     float64
-}
 
 // type
 var boolean bool
@@ -57,7 +41,7 @@ type queryModel struct {
 	FillMode    string   `json:"fillMode"`
 }
 
-func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig, password string, privateKey string) (result DataQueryResult, err error) {
+func fetchData(ctx context.Context, qc *_data.QueryConfigStruct, config *pluginConfig, password string, privateKey string) (result _data.QueryResult, err error) {
 	connectionString := getConnectionString(config, password, privateKey)
 
 	db, err := sql.Open("snowflake", connectionString)
@@ -68,7 +52,7 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig
 	defer db.Close()
 
 	log.DefaultLogger.Info("Query", "finalQuery", qc.FinalQuery)
-	rows, err := db.QueryContext(ctx, qc.FinalQuery)
+	rows, err := db.QueryContext(utils.AddQueryTagInfos(ctx, qc), qc.FinalQuery)
 	if err != nil {
 		if strings.Contains(err.Error(), "000605") {
 			log.DefaultLogger.Info("Query got cancelled", "query", qc.FinalQuery, "err", err)
@@ -91,7 +75,7 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig
 		return result, nil
 	}
 
-	table := DataTable{
+	table := _data.Table{
 		Columns: columnTypes,
 		Rows:    make([][]interface{}, 0),
 	}
@@ -101,7 +85,7 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig
 		if rowCount > rowLimit {
 			return result, fmt.Errorf("query row limit exceeded, limit %d", rowLimit)
 		}
-		values, err := qc.transformQueryResult(columnTypes, rows)
+		values, err := transformQueryResult(*qc, columnTypes, rows)
 		if err != nil {
 			return result, err
 		}
@@ -118,7 +102,7 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context, config *pluginConfig
 	return result, nil
 }
 
-func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType, rows *sql.Rows) ([]interface{}, error) {
+func transformQueryResult(qc _data.QueryConfigStruct, columnTypes []*sql.ColumnType, rows *sql.Rows) ([]interface{}, error) {
 	values := make([]interface{}, len(columnTypes))
 	valuePtrs := make([]interface{}, len(columnTypes))
 
@@ -137,7 +121,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 		log.DefaultLogger.Debug("Type", fmt.Sprintf("%T %v ", values[i], values[i]), columnTypes[i].DatabaseTypeName())
 
 		// Convert time columns when query mode is time series
-		if qc.isTimeSeriesType() && equalsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) && reflect.TypeOf(values[i]) == reflect.TypeOf(str) {
+		if qc.IsTimeSeriesType() && utils.EqualsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) && reflect.TypeOf(values[i]) == reflect.TypeOf(str) {
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 				values[i] = time.Unix(int64(v), 0)
 			} else {
@@ -180,7 +164,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, request *backend.QueryDataRequest, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
@@ -195,7 +179,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		return response
 	}
 
-	queryConfig := queryConfigStruct{
+	queryConfig := _data.QueryConfigStruct{
 		FinalQuery:    qm.QueryText,
 		RawQuery:      qm.QueryText,
 		TimeColumns:   qm.TimeColumns,
@@ -204,6 +188,8 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		Interval:      dataQuery.Interval,
 		TimeRange:     dataQuery.TimeRange,
 		MaxDataPoints: dataQuery.MaxDataPoints,
+		DashboardId:   request.GetHTTPHeader("X-Dashboard-Uid"),
+		PanelId:       request.GetHTTPHeader("X-Panel-Id"),
 	}
 
 	log.DefaultLogger.Info("Query config", "config", qm)
@@ -219,7 +205,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
 	frame := data.NewFrame("")
-	dataResponse, err := queryConfig.fetchData(ctx, &config, password, privateKey)
+	dataResponse, err := fetchData(ctx, &queryConfig, &config, password, privateKey)
 	if err != nil {
 		response.Error = err
 		return response
@@ -232,7 +218,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 				return backend.DataResponse{}
 			}
 			// Check time column
-			if queryConfig.isTimeSeriesType() && equalsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
+			if queryConfig.IsTimeSeriesType() && utils.EqualsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
 				if strings.EqualFold(column.Name(), "Time") {
 					timeColumnIndex = i
 				}
@@ -269,17 +255,17 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		for j, row := range table.Rows {
 			// Handle fill mode when the time column exist
 			if timeColumnIndex != -1 {
-				fillTimesSeries(queryConfig, intervalStart, row[Max(int64(timeColumnIndex), 0)].(time.Time).UnixNano()/1e6, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, j))
+				fillTimesSeries(queryConfig, intervalStart, row[utils.Max(int64(timeColumnIndex), 0)].(time.Time).UnixNano()/1e6, timeColumnIndex, frame, len(table.Columns), &count, utils.PreviousRow(table.Rows, j))
 			}
 			// without fill mode
 			for i, v := range row {
-				insertFrameField(frame, v, i)
+				utils.InsertFrameField(frame, v, i)
 			}
 			count++
 		}
-		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, len(table.Rows)))
+		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, utils.PreviousRow(table.Rows, len(table.Rows)))
 	}
-	if queryConfig.isTimeSeriesType() {
+	if queryConfig.IsTimeSeriesType() {
 		frame, err = td.longToWide(frame, queryConfig, dataResponse)
 		if err != nil {
 			response.Error = err
@@ -298,7 +284,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	return response
 }
 
-func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryConfigStruct, dataResponse DataQueryResult) (*data.Frame, error) {
+func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig _data.QueryConfigStruct, dataResponse _data.QueryResult) (*data.Frame, error) {
 	tsSchema := frame.TimeSeriesSchema()
 	if tsSchema.Type == data.TimeSeriesTypeLong {
 		fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
@@ -336,8 +322,8 @@ func mapFillMode(fillModeString string) data.FillMode {
 	return fillMode
 }
 
-func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, intervalEnd int64, timeColumnIndex int, frame *data.Frame, columnSize int, count *int, previousRow []interface{}) {
-	if queryConfig.isTimeSeriesType() && queryConfig.FillMode != "" && timeColumnIndex != -1 {
+func fillTimesSeries(queryConfig _data.QueryConfigStruct, intervalStart int64, intervalEnd int64, timeColumnIndex int, frame *data.Frame, columnSize int, count *int, previousRow []interface{}) {
+	if queryConfig.IsTimeSeriesType() && queryConfig.FillMode != "" && timeColumnIndex != -1 {
 		for stepTime := intervalStart + queryConfig.Interval.Nanoseconds()/1e6*int64(*count); stepTime < intervalEnd; stepTime = stepTime + (queryConfig.Interval.Nanoseconds() / 1e6) {
 			for i := 0; i < columnSize; i++ {
 				if i == timeColumnIndex {
@@ -352,9 +338,9 @@ func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, interva
 					frame.Fields[i].Append(nil)
 				case PreviousFill:
 					if previousRow == nil {
-						insertFrameField(frame, nil, i)
+						utils.InsertFrameField(frame, nil, i)
 					} else {
-						insertFrameField(frame, previousRow[i], i)
+						utils.InsertFrameField(frame, previousRow[i], i)
 					}
 				default:
 				}
