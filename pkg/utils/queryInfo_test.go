@@ -38,15 +38,17 @@ func TestAddQueryTagInfosWithValidPluginConfig(t *testing.T) {
 	}
 
 	qc := &data.QueryConfigStruct{
-		QueryType:  "table",
-		TimeRange:  timeRange,
-		FinalQuery: "SELECT * FROM test_table",
+		QueryType:   "table",
+		TimeRange:   timeRange,
+		FinalQuery:  "SELECT * FROM test_table",
+		DashboardId: "zPFHt9ZpZz",
+		PanelId:     "2",
 	}
 
 	ctx = backend.WithPluginContext(ctx, *pluginConfig)
 	ctx = AddQueryTagInfos(ctx, qc)
 	queryTag := fmt.Sprint(ctx)
-	expectedTag := `{"pluginVersion":"1.0.0","queryType":"table","from":"2024-01-01T00:00:00Z","to":"2024-01-02T00:00:00Z","grafana":{"version":"8.0.0","host":"http://localhost:3000","orgId":1,"user":"test-user","datasourceId":"datasource-uid"}}`
+	expectedTag := `{"pluginVersion":"1.0.0","queryType":"table","from":"2024-01-01T00:00:00Z","dashboardId":"zPFHt9ZpZz","panelId":"2","to":"2024-01-02T00:00:00Z","grafana":{"version":"8.0.0","host":"http://localhost:3000","orgId":1,"user":"test-user","datasourceId":"datasource-uid"}}`
 	require.Contains(t, queryTag, expectedTag)
 }
 
@@ -68,9 +70,11 @@ func TestAddQueryTagInfosWithNilConfig(t *testing.T) {
 	}
 
 	qc := &data.QueryConfigStruct{
-		QueryType:  "table",
-		TimeRange:  timeRange,
-		FinalQuery: "SELECT * FROM test_table",
+		QueryType:   "table",
+		TimeRange:   timeRange,
+		FinalQuery:  "SELECT * FROM test_table",
+		DashboardId: "",
+		PanelId:     "",
 	}
 
 	ctx = backend.WithPluginContext(ctx, *pluginConfig)

@@ -164,7 +164,7 @@ func transformQueryResult(qc _data.QueryConfigStruct, columnTypes []*sql.ColumnT
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, request *backend.QueryDataRequest, config pluginConfig, password string, privateKey string) (response backend.DataResponse) {
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
@@ -188,6 +188,8 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 		Interval:      dataQuery.Interval,
 		TimeRange:     dataQuery.TimeRange,
 		MaxDataPoints: dataQuery.MaxDataPoints,
+		DashboardId:   request.GetHTTPHeader("X-Dashboard-Uid"),
+		PanelId:       request.GetHTTPHeader("X-Panel-Id"),
 	}
 
 	log.DefaultLogger.Info("Query config", "config", qm)

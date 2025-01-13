@@ -42,6 +42,8 @@ func AddQueryTagInfos(ctx context.Context, qc *data.QueryConfigStruct) context.C
 	queryTagData := data.QueryTagStruct{
 		PluginVersion: pluginConfig.PluginVersion,
 		QueryType:     qc.QueryType,
+		DashboardId:   qc.DashboardId,
+		PanelId:       qc.PanelId,
 		From:          qc.TimeRange.From.Format(time.RFC3339),
 		To:            qc.TimeRange.To.Format(time.RFC3339),
 		Grafana: data.QueryTagGrafanaStruct{

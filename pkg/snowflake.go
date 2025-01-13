@@ -62,7 +62,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey)
+		response.Responses[q.RefID] = td.query(ctx, q, req, config, password, privateKey)
 	}
 
 	return response, nil

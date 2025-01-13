@@ -32,6 +32,8 @@ type QueryConfigStruct struct {
 	MaxDataPoints int64
 	FillMode      string
 	FillValue     float64
+	DashboardId   string
+	PanelId       string
 }
 
 type QueryTagStruct struct {
@@ -39,6 +41,8 @@ type QueryTagStruct struct {
 	QueryType     string                `json:"queryType,omitempty"`
 	From          string                `json:"from,omitempty"`
 	To            string                `json:"to,omitempty"`
+	DashboardId   string                `json:"dashboardId,omitempty"`
+	PanelId       string                `json:"panelId,omitempty"`
 	Grafana       QueryTagGrafanaStruct `json:"grafana,omitempty"`
 }
 
