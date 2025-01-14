@@ -1,13 +1,12 @@
-package main
+package utils
 
 import (
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"strings"
 	"time"
-
-	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
-func equalsIgnoreCase(s []string, str string) bool {
+func EqualsIgnoreCase(s []string, str string) bool {
 	for _, v := range s {
 		if strings.EqualFold(v, str) {
 			return true
@@ -32,7 +31,7 @@ func Min(x, y int64) int64 {
 	return y
 }
 
-func insertFrameField(frame *data.Frame, value interface{}, index int) {
+func InsertFrameField(frame *data.Frame, value interface{}, index int) {
 	switch v := value.(type) {
 	case string:
 		frame.Fields[index].Append(&v)
@@ -49,7 +48,7 @@ func insertFrameField(frame *data.Frame, value interface{}, index int) {
 	}
 }
 
-func previousRow(rows [][]interface{}, index int) []interface{} {
+func PreviousRow(rows [][]interface{}, index int) []interface{} {
 	if len(rows) > 0 {
 		return rows[Max(int64(index-1), 0)]
 	}

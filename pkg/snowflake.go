@@ -72,7 +72,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(ctx, q, config, password, privateKey, token)
+		response.Responses[q.RefID] = td.query(ctx, q, req, config, password, privateKey, token)
 	}
 
 	return response, nil
@@ -119,12 +119,12 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 	if len(privateKey) != 0 {
 		params.Add("authenticator", "SNOWFLAKE_JWT")
 		params.Add("privateKey", privateKey)
-		userPass = url.User(config.Username).String() + "@"
+		userPass = url.QueryEscape(config.Username) + "@"
 	} else if len(token) != 0 {
 		params.Add("authenticator", "oauth")
 		params.Add("token", token)
 	} else {
-		userPass = url.UserPassword(config.Username, password).String() + "@"
+		userPass = url.QueryEscape(config.Username) + ":" + url.QueryEscape(password) + "@"
 	}
 	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }

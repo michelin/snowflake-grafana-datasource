@@ -11,17 +11,21 @@ With the Snowflake plugin, you can visualize your Snowflake data in Grafana and 
 #### Install the Data Source
 
 1. Install the plugin into the grafana plugin folder:
+
+**With grafana-cli**
 ```shell
-grafana-cli --pluginUrl https://github.com/michelin/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip plugins install michelin-snowflake-datasource
+grafana cli --pluginUrl https://github.com/michelin/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip plugins install michelin-snowflake-datasource
 ```
-or
+`--pluginsDir` option can be used to specify a custom plugin directory
+
+**Manually**
 ```shell
 cd /var/lib/grafana/plugins/
 wget https://github.com/michelin/snowflake-grafana-datasource/releases/latest/download/snowflake-grafana-datasource.zip
 unzip snowflake-grafana-datasource.zip
 ```
 
-2. Edit the grafana configuration file to allow unsigned plugins:
+2. Edit the grafana configuration file `grafana.ini` to allow unsigned plugins:
 * Linux：/etc/grafana/grafana.ini
 * macOS：/usr/local/etc/grafana/grafana.ini
 ```shell
@@ -143,6 +147,13 @@ SELECT column FROM table WHERE column in ${variable:regex}
 SELECT column FROM table WHERE column in (test1|test2)
 ```
 
+Add a Template Variable:<br/>
+You can use a SQL Query to define a [Template Variable](https://grafana.com/docs/grafana/latest/dashboards/variables/add-template-variables/#add-a-query-variable)<br/>
+```sql
+-- Add __text and __value columns to your query to support custom "display names"
+SELECT value_column as __value, text_column as __text FROM table 
+```
+
 ##### Layout of a query
 
 *Simple query*
@@ -193,6 +204,12 @@ More info about snowflake-side caching: https://docs.snowflake.com/en/user-guide
 ## Development
 
 The snowflake datasource is a data source backend plugin composed of both frontend and backend components.
+
+To build the project you must have the following tools installed:
+* Go
+* Node
+* yarn
+
 
 ### Frontend
 

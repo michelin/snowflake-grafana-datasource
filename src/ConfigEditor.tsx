@@ -1,11 +1,16 @@
 import React, {ChangeEvent, PureComponent} from 'react';
-import {Checkbox, ControlledCollapse, LegacyForms, RadioButtonGroup, InlineLabel } from '@grafana/ui';
+import {
+  Checkbox,
+  ControlledCollapse,
+  InlineField,
+  Input,
+  SecretInput,
+  SecretTextArea,
+  RadioButtonGroup
+} from '@grafana/ui';
 import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
 import { useSearchParams } from 'react-router-dom';
-
-
-const { SecretFormField, FormField } = LegacyForms;
 
 interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> {}
 
@@ -18,6 +23,9 @@ const authOptions = [
   { label: 'Key Pair', value: 'keyPair' },
   { label: 'OAuth', value: 'oauth' },
 ];
+
+const LABEL_WIDTH = 30
+const INPUT_WIDTH = 40
 
 export class ConfigEditor extends PureComponent<Props, State> {
 
@@ -173,7 +181,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
     });
   };
 
-  onPrivateKeyChange = (event: ChangeEvent<HTMLInputElement>) => {
+  onPrivateKeyChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const { onOptionsChange, options } = this.props;
     let privateKey = event.target.value;
 
@@ -266,93 +274,90 @@ export class ConfigEditor extends PureComponent<Props, State> {
         <div className="gf-form-group">
           <h3 className="page-heading">Connection</h3>
 
-          <div className="gf-form">
-            <FormField
-                label="Account name"
-                labelWidth={10}
-                inputWidth={30}
+          <InlineField label="Account name"
+                       tooltip="All access to Snowflake is either through your account name (provided by Snowflake) or a URL that uses the following format: `xxxxx.snowflakecomputing.com`"
+                       labelWidth={LABEL_WIDTH}>
+            <Input
                 onChange={this.onAccountChange}
-                tooltip="All access to Snowflake is either through your account name (provided by Snowflake) or a URL that uses the following format: `xxxxx.snowflakecomputing.com`"
-                value={jsonData.account || ''}
+                value={jsonData.account ?? ''}
                 placeholder="xxxxxx.snowflakecomputing.com"
+                width={INPUT_WIDTH}
             />
-          </div>
+          </InlineField>
 
-          <div className="gf-form">
-            <InlineLabel width={20}>Authentications method</InlineLabel>
-            <RadioButtonGroup
-                options={authOptions}
-                value={authMethod}
-                onChange={this.onAuthMethodChange}
-            />
-          </div>
+          <InlineField label="Authentications method"
+                       labelWidth={LABEL_WIDTH}>
+              <RadioButtonGroup
+                    options={authOptions}
+                    value={authMethod}
+                    onChange={this.onAuthMethodChange}
+                />
+          </InlineField>
 
           { authMethod !== 'oauth' && (
-              <div className="gf-form">
-                    <FormField
-                    label="Username"
-                    labelWidth={10}
-                    inputWidth={20}
-                    onChange={this.onUsernameChange}
-                    value={jsonData.username || ''}
-                    placeholder="Username"
-                    tooltip="The snowflake account username"
-                />
-              </div>
+              <InlineField label="Username"
+                           tooltip="The snowflake account username"
+                           labelWidth={LABEL_WIDTH}>
+                  <Input
+                      onChange={this.onUsernameChange}
+                      value={jsonData.username ?? ''}
+                      placeholder="Username"
+                      width={INPUT_WIDTH}
+                  />
+              </InlineField>
           )}
           <div className="gf-form">
             {authMethod === 'password' && (
-                  <SecretFormField
-                      isConfigured={(secureJsonFields && secureJsonFields.password) as boolean}
-                      value={secureJsonData.password || ''}
-                      label="Password"
-                      placeholder="password"
-                      labelWidth={10}
-                      inputWidth={20}
-                      onReset={this.onResetPassword}
-                      onChange={this.onPasswordChange}
-                      tooltip="The snowflake account password"
-                  />
+                <InlineField label="Password"
+                             labelWidth={LABEL_WIDTH}>
+                    <SecretInput
+                        isConfigured={secureJsonFields?.password}
+                        value={secureJsonData.password ?? ''}
+                        placeholder="password"
+                        width={INPUT_WIDTH}
+                        onReset={this.onResetPassword}
+                        onChange={this.onPasswordChange}
+                    />
+                </InlineField>
             )}
             {authMethod === 'keyPair' && (
-                <SecretFormField
-                    isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
-                    value={secureJsonData.privateKey || ''}
-                    tooltip="The private key"
-                    label="Private key"
-                    placeholder="-----BEGIN PRIVATE KEY-----"
-                    labelWidth={10}
-                    inputWidth={20}
-                    onReset={this.onResetPrivateKey}
-                    onChange={this.onPrivateKeyChange}
-                />
+                <InlineField label="Private key"
+                             tooltip="The private key must be encoded in base 64 URL encoded pkcs8 (remove PEM header '----- BEGIN PRIVATE KEY -----' and '----- END PRIVATE KEY -----', remove line space and replace '+' with '-' and '/' with '_')"
+                             labelWidth={LABEL_WIDTH}>
+                    <SecretTextArea
+                        isConfigured={secureJsonFields?.privateKey}
+                        value={secureJsonData.privateKey ?? ''}
+                        placeholder="MIIB..."
+                        onReset={this.onResetPrivateKey}
+                        onChange={this.onPrivateKeyChange}
+                        cols={38}
+                        rows={5}
+                    />
+                </InlineField>
             )}
           </div>
             {authMethod === 'oauth' && (
                 <div>
-                  <div className="gf-form">
-                    <FormField
-                        value={jsonData.clientId || ''}
-                        tooltip="Oauth client ID"
-                        label="Client ID"
-                        labelWidth={10}
-                        inputWidth={20}
-                        onChange={this.onClientIdChange}
-                    />
-                  </div>
-                  <div className="gf-form">
-                    <SecretFormField
+                    <InlineField label="Client ID"
+                                 tooltip="Oauth client ID"
+                                 labelWidth={LABEL_WIDTH}>
+                        <Input
+                            value={jsonData.clientId || ''}
+                            width={INPUT_WIDTH}
+                            onChange={this.onClientIdChange}
+                        />
+                    </InlineField>
+                    <InlineField label="Client Secret"
+                                 tooltip="Oauth Client Secret"
+                                 labelWidth={LABEL_WIDTH}>
+                    <SecretInput
                         isConfigured={(secureJsonFields && secureJsonFields.clientSecret) as boolean}
-                        value={secureJsonData.clientSecret || ''}
-                        tooltip="Oauth Client Secret"
-                        label="Client Secret"
-                        placeholder=""
-                        labelWidth={10}
-                        inputWidth={20}
+                        value={secureJsonData.clientSecret ?? ''}
+                        width={INPUT_WIDTH}
                         onReset={this.onResetClientSecret}
                         onChange={this.onClientSecretChange}
                     />
-                  </div>
+                    </InlineField>
                 </div>
             )}
           { !searchParams.has('code') && authMethod === 'oauth' && (
@@ -363,89 +368,84 @@ export class ConfigEditor extends PureComponent<Props, State> {
               </button>
           )}
 
-          <div className="gf-form">
-            <FormField
-                label="Role"
-                labelWidth={10}
-                inputWidth={20}
-                onChange={this.onRoleChange}
-                value={jsonData.role || ''}
-                placeholder="Role"
-                tooltip="Global role to use for the connection"
-            />
-          </div>
-          <br/>
-          <h3 className="page-heading">Parameter configuration</h3>
-
-          <div className="gf-form">
-            <FormField
-                label="Warehouse"
-                labelWidth={10}
-                inputWidth={20}
-                onChange={this.onWarehouseChange}
-                value={jsonData.warehouse || ''}
-                placeholder="Default warehouse"
-                tooltip="Warehouse to use for the connection"
-            />
-          </div>
-
-          <div className="gf-form">
-            <FormField
-                label="Database"
-                labelWidth={10}
-                inputWidth={20}
-                onChange={this.onDatabaseChange}
-                value={jsonData.database || ''}
-                placeholder="Default database"
-                tooltip="Database to use for the connection"
-            />
-          </div>
-
-          <div className="gf-form">
-            <FormField
-                label="Schema"
-                labelWidth={10}
-                inputWidth={20}
-                onChange={this.onSchemaChange}
-                value={jsonData.schema || ''}
-                placeholder="Default Schema"
-                tooltip="Schema to use for the connection"
-            />
-          </div>
-          <br/>
-          <h3 className="page-heading">Session configuration</h3>
-
-          <div className="gf-form">
-            <FormField
-                label="Extra options"
-                labelWidth={10}
-                inputWidth={30}
-                onChange={this.onExtraOptionChange}
-                value={jsonData.extraConfig || ''}
-                placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
-                tooltip="Extra connection parameters to use for the connection"
-            />
-          </div>
-          <br/>
-          <ControlledCollapse label="Experimental">
-            <div className="gf-form">
-              <FormField
-                  label="Max Chunk Download Workers"
-                  labelWidth={15}
-                  inputWidth={3}
-                  onChange={this.onMaxChunkDownloadWorkersChange}
-                  value={jsonData.maxChunkDownloadWorkers || '10'}
-              />
-            </div>
+            <InlineField label="Role"
+                         tooltip="Global role to use for the connection"
+                         labelWidth={LABEL_WIDTH}>
+                <Input
+                    width={INPUT_WIDTH}
+                    onChange={this.onRoleChange}
+                    value={jsonData.role ?? ''}
+                    placeholder="Role"
+                />
+            </InlineField>
             <br/>
-            <div className="gf-form">
-                <Checkbox
-                    value={jsonData.customJSONDecoderEnabled}
-                    onChange={this.onCustomJSONDecoderEnabledChange}
-                    label="Enable Custom JSON Decoder"
+            <h3 className="page-heading">Parameter configuration</h3>
+
+            <InlineField label="Warehouse"
+                         tooltip="Warehouse to use for the connection"
+                         labelWidth={LABEL_WIDTH}>
+                <Input
+                    width={INPUT_WIDTH}
+                    onChange={this.onWarehouseChange}
+                    value={jsonData.warehouse ?? ''}
+                    placeholder="Default warehouse"
+                />
+            </InlineField>
+
+            <InlineField label="Database"
+                         tooltip="Database to use for the connection"
+                         labelWidth={LABEL_WIDTH}>
+                <Input
+                    width={INPUT_WIDTH}
+                    onChange={this.onDatabaseChange}
+                    value={jsonData.database ?? ''}
+                    placeholder="Default database"
+                />
+            </InlineField>
+
+            <InlineField label="Schema"
+                         tooltip="Schema to use for the connection"
+                         labelWidth={LABEL_WIDTH}>
+                <Input
+                    width={INPUT_WIDTH}
+                    onChange={this.onSchemaChange}
+                    value={jsonData.schema ?? ''}
+                    placeholder="Default Schema"
+                />
+            </InlineField>
+            <br/>
+            <h3 className="page-heading">Session configuration</h3>
+
+            <InlineField label="Extra options"
+                         tooltip="Extra connection parameters to use for the connection"
+                         labelWidth={LABEL_WIDTH}>
+                <Input
+                    width={INPUT_WIDTH}
+                    onChange={this.onExtraOptionChange}
+                    value={jsonData.extraConfig ?? ''}
+                    placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
+                />
+            </InlineField>
+            <br/>
+            <ControlledCollapse label="Experimental">
+                <InlineField label="Max Chunk Download Workers"
+                             labelWidth={LABEL_WIDTH}>
+                    <Input
+                        width={INPUT_WIDTH}
+                        onChange={this.onMaxChunkDownloadWorkersChange}
+                        value={jsonData.maxChunkDownloadWorkers ?? '10'}
                     />
-            </div>
-          </ControlledCollapse>
+                </InlineField>
+                <br/>
+                <InlineField label="Enable Custom JSON Decoder"
+                             style={{alignItems: 'center'}}
+                             labelWidth={LABEL_WIDTH}>
+                    <Checkbox
+                        value={jsonData.customJSONDecoderEnabled ?? false}
+                        onChange={this.onCustomJSONDecoderEnabledChange}
+                    />
+                </InlineField>
+            </ControlledCollapse>
         </div>
     );
   }

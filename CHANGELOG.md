@@ -1,15 +1,41 @@
 # Changelog
 
-## 1.9.0
+## 2.0.0 (not released yet)
 
 ### ⭐ Added
+- Add a query tag that includes relevant Grafana context information.
 - Add support of OAuth authentication.
 
 ### 🔨 Changed
 - Rewrite the datasource configuration UI (ease authentication selection).
 - Support non encoded private key in the datasource configuration.
 
+## 1.9.1
+
+### 🔨 Changed
+- Remove deprecated UI components
+
+## 1.9.0
+
+### ⭐ Added
+- Template Variable: custom “display names” support with `__text` & `__value`
+
+### 🐞 Bug Fixes
+- Resolve the issue with incorrect password escaping for certain special characters.
+
+### 🔨 Changed
+- Upgrade grafana-plugin-sdk-go to version v0.260.1.
+- Upgrade js dependencies.
+
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@a2intl](https://github.com/a2intl)
+- [@MrLight](https://github.com/MrLight)
+
 ## 1.8.1
+
+### 🐞 Bug Fixes
+- Resolve the issue of reusing closed connections.
 
 ### 🔨 Changed
 - Upgrade grafana-plugin-sdk-go to version v0.258.0.

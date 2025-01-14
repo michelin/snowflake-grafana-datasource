@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	"math"
 	"regexp"
 	"strconv"
@@ -11,6 +13,7 @@ import (
 
 const rsIdentifier = `([_a-zA-Z0-9]+)`
 const sExpr = `\$` + rsIdentifier + `\(([^\)]*)\)`
+const missingColumnMessage = "missing time column argument for macro %v"
 
 func ReplaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]string) string) string {
 	result := ""
@@ -29,7 +32,7 @@ func ReplaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]str
 	return result + str[lastIndex:]
 }
 
-func Interpolate(configStruct *queryConfigStruct) (string, error) {
+func Interpolate(configStruct *data.QueryConfigStruct) (string, error) {
 	rExp, _ := regexp.Compile(sExpr)
 	var macroError error
 
@@ -57,7 +60,7 @@ func Interpolate(configStruct *queryConfigStruct) (string, error) {
 	return sql, nil
 }
 
-func SetupFillmode(configStruct *queryConfigStruct, fillmode string) error {
+func SetupFillmode(configStruct *data.QueryConfigStruct, fillmode string) error {
 	switch fillmode {
 	case "NULL":
 		configStruct.FillMode = NullFill
@@ -76,22 +79,23 @@ func SetupFillmode(configStruct *queryConfigStruct, fillmode string) error {
 }
 
 // evaluateMacro convert macro expression to sql expression
-func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) (string, error) {
+func evaluateMacro(name string, args []string, configStruct *data.QueryConfigStruct) (string, error) {
 	timeRange := configStruct.TimeRange
+
 	switch name {
 	case "__time":
 		if len(args) == 0 || args[0] == "" {
-			return "", fmt.Errorf("missing time column argument for macro %v", name)
+			return "", fmt.Errorf(missingColumnMessage, name)
 		}
 		return fmt.Sprintf("TRY_TO_TIMESTAMP_NTZ(%s) AS time", args[0]), nil
 	case "__timeEpoch":
 		if len(args) == 0 || args[0] == "" {
-			return "", fmt.Errorf("missing time column argument for macro %v", name)
+			return "", fmt.Errorf(missingColumnMessage, name)
 		}
 		return fmt.Sprintf("extract(epoch from %s) as time", args[0]), nil
 	case "__timeFilter":
 		if len(args) == 0 || args[0] == "" {
-			return "", fmt.Errorf("missing time column argument for macro %v", name)
+			return "", fmt.Errorf(missingColumnMessage, name)
 		}
 		column := args[0]
 		timezone := "'UTC'"
@@ -101,7 +105,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		return fmt.Sprintf("%s > CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz) AND %s < CONVERT_TIMEZONE('UTC', %s, '%s'::timestamp_ntz)", column, timezone, timeRange.From.UTC().Format(time.RFC3339Nano), column, timezone, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
 	case "__timeTzFilter":
 		if len(args) == 0 || args[0] == "" {
-			return "", fmt.Errorf("missing time column argument for macro %v", name)
+			return "", fmt.Errorf(missingColumnMessage, name)
 		}
 		column := args[0]
 		return fmt.Sprintf("%s > '%s'::timestamp_tz AND %s < '%s'::timestamp_tz", column, timeRange.From.UTC().Format(time.RFC3339Nano), column, timeRange.To.UTC().Format(time.RFC3339Nano)), nil
@@ -144,7 +148,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) < 2 {
 			return "", fmt.Errorf("macro %v needs time column and interval and optional fill value", name)
 		}
-		interval, err := ParseInterval(strings.Trim(args[1], `'`))
+		interval, err := utils.ParseInterval(strings.Trim(args[1], `'`))
 		if err != nil {
 			return "", fmt.Errorf("error parsing interval %v", args[1])
 		}
@@ -164,12 +168,12 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		return "", err
 	case "__unixEpochFilter":
 		if len(args) == 0 || args[0] == "" {
-			return "", fmt.Errorf("missing time column argument for macro %v", name)
+			return "", fmt.Errorf(missingColumnMessage, name)
 		}
 		return fmt.Sprintf("%s >= %d AND %s <= %d", args[0], timeRange.From.UTC().Unix(), args[0], timeRange.To.UTC().Unix()), nil
 	case "__unixEpochNanoFilter":
 		if len(args) == 0 || args[0] == "" {
-			return "", fmt.Errorf("missing time column argument for macro %v", name)
+			return "", fmt.Errorf(missingColumnMessage, name)
 		}
 		return fmt.Sprintf("%s >= %d AND %s <= %d", args[0], timeRange.From.UTC().UnixNano(), args[0], timeRange.To.UTC().UnixNano()), nil
 	case "__unixEpochNanoFrom":
@@ -180,7 +184,7 @@ func evaluateMacro(name string, args []string, configStruct *queryConfigStruct) 
 		if len(args) < 2 {
 			return "", fmt.Errorf("macro %v needs time column and interval and optional fill value", name)
 		}
-		interval, err := ParseInterval(strings.Trim(args[1], `'`))
+		interval, err := utils.ParseInterval(strings.Trim(args[1], `'`))
 		if err != nil {
 			return "", fmt.Errorf("error parsing interval %v", args[1])
 		}
