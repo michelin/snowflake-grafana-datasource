@@ -51,12 +51,23 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 }
 
 func createAndValidationConnectionString(req *backend.CheckHealthRequest) (string, *backend.CheckHealthResult) {
+
+	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		return "", &backend.CheckHealthResult{
+			Status:  backend.HealthStatusError,
+			Message: fmt.Sprintf("Error getting config: %s", err),
+		}
+	}
+
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+
 	oauth := Oauth{
-		clientId:      req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientId"],
+		clientId:      config.ClientId,
 		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
-		tokenEndpoint: req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["tokenEndpoint"],
+		tokenEndpoint: "https://" + config.Account + "/oauth/token-request",
+		code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
 	}
 
 	if password == "" && privateKey == "" && oauth.clientSecret == "" {
@@ -80,14 +91,6 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		}
 	}
 
-	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
-	if err != nil {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Error getting config: %s", err),
-		}
-	}
-
 	if config.Account == "" {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
@@ -108,7 +111,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		config.ExtraConfig = "validateDefaultParameters=true"
 	}
 
-	token, err := getToken(oauth, true)
+	token, err := getTokenFromCode(oauth)
 	if err != nil {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,

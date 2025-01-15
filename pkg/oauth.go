@@ -11,9 +11,35 @@ type Oauth struct {
 	clientId      string
 	clientSecret  string
 	tokenEndpoint string
+	code          string
 }
 
 var tokenSource oauth2.TokenSource
+
+// get token from code oauth flow
+func getTokenFromCode(oauth Oauth) (string, error) {
+	if oauth.clientId == "" || oauth.clientSecret == "" || oauth.tokenEndpoint == "" || oauth.code == "" {
+		return "", nil
+	}
+
+	config := &oauth2.Config{
+		ClientID:     oauth.clientId,
+		ClientSecret: oauth.clientSecret,
+		RedirectURL:  "http://localhost:3000/connections/datasources/edit/de169k24p8agwe",
+		Endpoint: oauth2.Endpoint{
+			TokenURL:  oauth.tokenEndpoint,
+			AuthStyle: oauth2.AuthStyleInHeader,
+		},
+	}
+
+	token, err := config.Exchange(context.Background(), oauth.code)
+	if err != nil {
+		log.DefaultLogger.Error("Could not get token", "err", err)
+		return "", err
+	}
+
+	return token.AccessToken, nil
+}
 
 func getToken(oauth Oauth, recreate bool) (string, error) {
 	if oauth.clientId == "" || oauth.clientSecret == "" || oauth.tokenEndpoint == "" {

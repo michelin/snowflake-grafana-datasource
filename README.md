@@ -71,6 +71,28 @@ Available configuration fields are as follows:
  Schema (Optional)        | Specifies the default schema to use for the specified database once connected. 
  Extra Options (Optional) | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string. 
 
+**OAuth authentication**
+
+The plugin supports Snowflake OAuth authentication.<br/>
+To use OAuth, you need to create an OAuth custom integration in your Snowflake account. You can follow the steps in the [Snowflake documentation](https://docs.snowflake.com/en/sql-reference/sql/create-security-integration-oauth-snowflake).
+```sql
+-- Create a security integration for Snowflake OAuth
+CREATE OR REPLACE SECURITY INTEGRATION SNOWFLAKE_GRAFANA
+  TYPE = oauth
+  ENABLED = true
+  OAUTH_CLIENT = custom
+  OAUTH_CLIENT_TYPE = 'CONFIDENTIAL'
+  OAUTH_REDIRECT_URI = 'http://localhost:3000/connections/datasources/edit/de169k24p8agwe' -- Grafana Snowflake datasource URL
+  OAUTH_ISSUE_REFRESH_TOKENS = TRUE
+  OAUTH_ALLOW_NON_TLS_REDIRECT_URI= TRUE
+  OAUTH_REFRESH_TOKEN_VALIDITY = 86400;
+
+-- list the security integration details
+SELECT SYSTEM$SHOW_OAUTH_CLIENT_SECRETS('SNOWFLAKE_GRAFANA');
+
+-- Use ClientId and ClientSecret in the Grafana datasource configuration
+```
+
 #### Supported Macros
 
 Macros can be used within a query to simplify syntax and allow for dynamic parts.

@@ -49,18 +49,19 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	// create response struct
 	response := backend.NewQueryDataResponse()
 
-	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
-	oauth := Oauth{
-		clientId:      req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientId"],
-		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
-		tokenEndpoint: req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["tokenEndpoint"],
-	}
-
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
 		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
 		return response, err
+	}
+
+	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	oauth := Oauth{
+		clientId:      config.ClientId,
+		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		tokenEndpoint: config.Account + "/oauth/token-request",
+		code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
 	}
 
 	token, err := getToken(oauth, false)
@@ -88,6 +89,7 @@ type pluginConfig struct {
 	ExtraConfig              string `json:"extraConfig"`
 	MaxChunkDownloadWorkers  string `json:"maxChunkDownloadWorkers"`
 	CustomJSONDecoderEnabled bool   `json:"customJSONDecoderEnabled"`
+	ClientId                 string `json:"clientId"`
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {
