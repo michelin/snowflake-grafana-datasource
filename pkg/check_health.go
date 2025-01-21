@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	_ "github.com/snowflakedb/gosnowflake"
 )
@@ -62,29 +63,29 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
 
-	oauth := Oauth{
-		clientId:      config.ClientId,
-		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
-		code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
-		tokenEndpoint: config.TokenEndpoint,
-		redirectUrl:   config.RedirectUrl,
+	oauth := _oauth.Oauth{
+		ClientId:      config.ClientId,
+		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		Code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
+		TokenEndpoint: config.TokenEndpoint,
+		RedirectUrl:   config.RedirectUrl,
 	}
 
-	if password == "" && privateKey == "" && oauth.clientSecret == "" {
+	if password == "" && privateKey == "" && oauth.ClientSecret == "" {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: "Password or private key or Oauth fields are required.",
 		}
 	}
 
-	if (password != "" && (privateKey != "" || oauth.clientSecret != "")) || (privateKey != "" && oauth.clientSecret != "") {
+	if (password != "" && (privateKey != "" || oauth.ClientSecret != "")) || (privateKey != "" && oauth.ClientSecret != "") {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: "Only one authentication method must be provided.",
 		}
 	}
 
-	if password == "" && privateKey == "" && (oauth.clientSecret == "" || oauth.clientId == "" || oauth.tokenEndpoint == "" || oauth.code == "") {
+	if password == "" && privateKey == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "" || oauth.Code == "") {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource.",
@@ -111,7 +112,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		config.ExtraConfig = "validateDefaultParameters=true"
 	}
 
-	token, err := getTokenFromCode(oauth)
+	token, err := _oauth.GetTokenFromCode(oauth)
 	if err != nil {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,

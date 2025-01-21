@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	"math/big"
 	"reflect"
@@ -26,13 +27,6 @@ var tim time.Time
 var float float64
 var str string
 var integer int64
-
-// Constant used to describe the time series fill mode if no value has been seen
-const (
-	NullFill     = "null"
-	PreviousFill = "previous"
-	ValueFill    = "value"
-)
 
 type queryModel struct {
 	QueryText   string   `json:"queryText"`
@@ -195,7 +189,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	log.DefaultLogger.Info("Query config", "config", qm)
 
 	// Apply macros
-	queryConfig.FinalQuery, err = Interpolate(&queryConfig)
+	queryConfig.FinalQuery, err = query.Interpolate(&queryConfig)
 	if err != nil {
 		response.Error = err
 		return response
@@ -287,7 +281,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig _data.QueryConfigStruct, dataResponse _data.QueryResult) (*data.Frame, error) {
 	tsSchema := frame.TimeSeriesSchema()
 	if tsSchema.Type == data.TimeSeriesTypeLong {
-		fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
+		fillMode := &data.FillMissing{Mode: query.MapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
 		if len(dataResponse.Tables) > 0 && len(dataResponse.Tables[0].Rows) > 0 {
 			var err error
 			frame, err = data.LongToWide(frame, fillMode)
@@ -307,21 +301,6 @@ func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig _data.Q
 	return frame, nil
 }
 
-func mapFillMode(fillModeString string) data.FillMode {
-	var fillMode = data.FillModeNull
-	switch fillModeString {
-	case ValueFill:
-		fillMode = data.FillModeValue
-	case NullFill:
-		fillMode = data.FillModeNull
-	case PreviousFill:
-		fillMode = data.FillModePrevious
-	default:
-		// no-op
-	}
-	return fillMode
-}
-
 func fillTimesSeries(queryConfig _data.QueryConfigStruct, intervalStart int64, intervalEnd int64, timeColumnIndex int, frame *data.Frame, columnSize int, count *int, previousRow []interface{}) {
 	if queryConfig.IsTimeSeriesType() && queryConfig.FillMode != "" && timeColumnIndex != -1 {
 		for stepTime := intervalStart + queryConfig.Interval.Nanoseconds()/1e6*int64(*count); stepTime < intervalEnd; stepTime = stepTime + (queryConfig.Interval.Nanoseconds() / 1e6) {
@@ -332,11 +311,11 @@ func fillTimesSeries(queryConfig _data.QueryConfigStruct, intervalStart int64, i
 					continue
 				}
 				switch queryConfig.FillMode {
-				case ValueFill:
+				case query.ValueFill:
 					frame.Fields[i].Append(&queryConfig.FillValue)
-				case NullFill:
+				case query.NullFill:
 					frame.Fields[i].Append(nil)
-				case PreviousFill:
+				case query.PreviousFill:
 					if previousRow == nil {
 						utils.InsertFrameField(frame, nil, i)
 					} else {

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
 	sf "github.com/snowflakedb/gosnowflake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,20 +26,12 @@ func TestIsTimeSeriesType_FalseWhenQueryTypeIsEmpty(t *testing.T) {
 	assert.False(t, qc.IsTimeSeriesType())
 }
 
-func TestMapFillMode(t *testing.T) {
-	assert.Equal(t, data.FillModeValue, mapFillMode("value"))
-	assert.Equal(t, data.FillModeNull, mapFillMode("null"))
-	assert.Equal(t, data.FillModePrevious, mapFillMode("previous"))
-	assert.Equal(t, data.FillModeNull, mapFillMode("unknown"))
-	assert.Equal(t, data.FillModeNull, mapFillMode(""))
-}
-
 func TestFillTimesSeries_AppendsCorrectTimeValues(t *testing.T) {
 	frame := data.NewFrame("")
 	frame.Fields = append(frame.Fields, data.NewField("time", nil, []*time.Time{}))
 	queryConfig := _data.QueryConfigStruct{
 		Interval:  time.Minute,
-		FillMode:  NullFill,
+		FillMode:  query.NullFill,
 		QueryType: _data.TimeSeriesType,
 	}
 	fillTimesSeries(queryConfig, 0, 60000, 0, frame, 1, new(int), nil)
@@ -52,7 +45,7 @@ func TestFillTimesSeries_AppendsFillValue(t *testing.T) {
 	frame.Fields = append(frame.Fields, data.NewField("value", nil, []*float64{}))
 	queryConfig := _data.QueryConfigStruct{
 		Interval:  time.Minute,
-		FillMode:  ValueFill,
+		FillMode:  query.ValueFill,
 		FillValue: 42.0,
 		QueryType: _data.TimeSeriesType,
 	}
@@ -67,7 +60,7 @@ func TestFillTimesSeries_AppendsNilForNullFill(t *testing.T) {
 	frame.Fields = append(frame.Fields, data.NewField("value", nil, []*float64{}))
 	queryConfig := _data.QueryConfigStruct{
 		Interval:  time.Minute,
-		FillMode:  NullFill,
+		FillMode:  query.NullFill,
 		QueryType: _data.TimeSeriesType,
 	}
 	fillTimesSeries(queryConfig, 0, 60000, 0, frame, 2, new(int), nil)
@@ -81,7 +74,7 @@ func TestFillTimesSeries_AppendsPreviousValue(t *testing.T) {
 	frame.Fields = append(frame.Fields, data.NewField("value", nil, []*float64{}))
 	queryConfig := _data.QueryConfigStruct{
 		Interval:  time.Minute,
-		FillMode:  PreviousFill,
+		FillMode:  query.PreviousFill,
 		QueryType: _data.TimeSeriesType,
 	}
 	previousRow := []interface{}{time.Unix(0, 0), 42.0}
@@ -96,7 +89,7 @@ func TestFillTimesSeries_DoesNotAppendWhenNotTimeSeries(t *testing.T) {
 	frame.Fields = append(frame.Fields, data.NewField("value", nil, []*float64{}))
 	queryConfig := _data.QueryConfigStruct{
 		Interval:  time.Minute,
-		FillMode:  NullFill,
+		FillMode:  query.NullFill,
 		QueryType: "table",
 	}
 	fillTimesSeries(queryConfig, 0, 60000, 1, frame, 2, new(int), nil)
@@ -109,7 +102,7 @@ func TestAppendsNilWhenPreviousRowIsNil(t *testing.T) {
 	frame.Fields = append(frame.Fields, data.NewField("value", nil, []*float64{}))
 	queryConfig := _data.QueryConfigStruct{
 		Interval:  time.Minute,
-		FillMode:  PreviousFill,
+		FillMode:  query.PreviousFill,
 		QueryType: _data.TimeSeriesType,
 	}
 	fillTimesSeries(queryConfig, 0, 60000, 0, frame, 2, new(int), nil)

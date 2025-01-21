@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
 	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -58,15 +59,15 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
-	oauth := Oauth{
-		clientId:      config.ClientId,
-		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
-		code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
-		tokenEndpoint: config.TokenEndpoint,
-		redirectUrl:   config.RedirectUrl,
+	oauth := _oauth.Oauth{
+		ClientId:      config.ClientId,
+		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		Code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
+		TokenEndpoint: config.TokenEndpoint,
+		RedirectUrl:   config.RedirectUrl,
 	}
 
-	token, err := getToken(oauth, false)
+	token, err := _oauth.GetToken(oauth, false)
 	if err != nil {
 		return response, err
 	}

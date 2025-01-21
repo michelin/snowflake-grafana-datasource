@@ -1,4 +1,4 @@
-package main
+package oauth
 
 import (
 	"github.com/stretchr/testify/require"
@@ -22,20 +22,20 @@ func TestTokenSourceIsRecreatedWhenRequested(t *testing.T) {
 	defer ts.Close()
 
 	oauth := Oauth{
-		clientId:      "test-client-id",
-		clientSecret:  "test-client-secret",
-		tokenEndpoint: ts.URL,
+		ClientId:      "test-client-id",
+		ClientSecret:  "test-client-secret",
+		TokenEndpoint: ts.URL,
 	}
 
-	// First call to getToken with recreate = true
-	token1, err1 := getToken(oauth, true)
+	// First call to GetToken with recreate = true
+	token1, err1 := GetToken(oauth, true)
 	require.NotEmpty(t, token1)
 	require.NoError(t, err1)
 
 	require.Equal(t, 1, callCount)
 
-	// Second call to getToken with recreate = true
-	token2, err2 := getToken(oauth, true)
+	// Second call to GetToken with recreate = true
+	token2, err2 := GetToken(oauth, true)
 	require.NotEmpty(t, token2)
 	require.NoError(t, err2)
 
@@ -57,20 +57,20 @@ func TestTokenSourceIsNotRecreatedWhenNotRequested(t *testing.T) {
 	defer ts.Close()
 
 	oauth := Oauth{
-		clientId:      "test-client-id",
-		clientSecret:  "test-client-secret",
-		tokenEndpoint: ts.URL,
+		ClientId:      "test-client-id",
+		ClientSecret:  "test-client-secret",
+		TokenEndpoint: ts.URL,
 	}
 
-	// First call to getToken with recreate = true
-	token1, err1 := getToken(oauth, true)
+	// First call to GetToken with recreate = true
+	token1, err1 := GetToken(oauth, true)
 	require.NotEmpty(t, token1)
 	require.NoError(t, err1)
 
 	require.Equal(t, 1, callCount)
 
-	// Second call to getToken with recreate = false
-	token2, err2 := getToken(oauth, false)
+	// Second call to GetToken with recreate = false
+	token2, err2 := GetToken(oauth, false)
 	require.NotEmpty(t, token2)
 	require.NoError(t, err2)
 
@@ -88,13 +88,13 @@ func TestErrorWhenTokenCannotBeRetrieved(t *testing.T) {
 	}))
 	defer ts.Close()
 	oauth := Oauth{
-		clientId:      "invalid-client-id",
-		clientSecret:  "invalid-client-secret",
-		tokenEndpoint: ts.URL,
+		ClientId:      "invalid-client-id",
+		ClientSecret:  "invalid-client-secret",
+		TokenEndpoint: ts.URL,
 	}
 
-	// Call getToken with recreate = true
-	token, err := getToken(oauth, true)
+	// Call GetToken with recreate = true
+	token, err := GetToken(oauth, true)
 	require.Empty(t, token)
 	require.Error(t, err)
 
@@ -103,7 +103,7 @@ func TestErrorWhenTokenCannotBeRetrieved(t *testing.T) {
 
 func TestGetTokenMissingConfiguration(t *testing.T) {
 	oauth := Oauth{}
-	token, err := getToken(oauth, true)
+	token, err := GetToken(oauth, true)
 	require.Empty(t, token)
 	require.NoError(t, err)
 }
