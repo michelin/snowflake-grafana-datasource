@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -70,11 +71,17 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 		return response, err
 	}
 
+	authenticationSecret := data.AuthenticationSecret{
+		Password:   password,
+		PrivateKey: privateKey,
+		Token:      token,
+	}
+
 	// loop over queries and execute them individually.
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(ctx, q, req, config, password, privateKey, token)
+		response.Responses[q.RefID] = td.query(ctx, q, req, config, authenticationSecret)
 	}
 
 	return response, nil
@@ -104,7 +111,7 @@ func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, erro
 	return config, nil
 }
 
-func getConnectionString(config *pluginConfig, password string, privateKey string, token string) string {
+func getConnectionString(config *pluginConfig, authenticationSecret data.AuthenticationSecret) string {
 	params := url.Values{}
 	params.Add("role", config.Role)
 	params.Add("warehouse", config.Warehouse)
@@ -121,15 +128,15 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 	sf.CustomJSONDecoderEnabled = config.CustomJSONDecoderEnabled
 
 	var userPass = ""
-	if len(privateKey) != 0 {
+	if len(authenticationSecret.PrivateKey) != 0 {
 		params.Add("authenticator", "SNOWFLAKE_JWT")
-		params.Add("privateKey", privateKey)
+		params.Add("privateKey", authenticationSecret.PrivateKey)
 		userPass = url.QueryEscape(config.Username) + "@"
-	} else if len(token) != 0 {
+	} else if len(authenticationSecret.Token) != 0 {
 		params.Add("authenticator", "oauth")
-		params.Add("token", token)
+		params.Add("token", authenticationSecret.Token)
 	} else {
-		userPass = url.QueryEscape(config.Username) + ":" + url.QueryEscape(password) + "@"
+		userPass = url.QueryEscape(config.Username) + ":" + url.QueryEscape(authenticationSecret.Password) + "@"
 	}
 	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }

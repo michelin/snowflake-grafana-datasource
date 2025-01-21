@@ -41,8 +41,8 @@ type queryModel struct {
 	FillMode    string   `json:"fillMode"`
 }
 
-func fetchData(ctx context.Context, qc *_data.QueryConfigStruct, config *pluginConfig, password string, privateKey string, token string) (result _data.QueryResult, err error) {
-	connectionString := getConnectionString(config, password, privateKey, token)
+func fetchData(ctx context.Context, qc *_data.QueryConfigStruct, config *pluginConfig, authenticationSecret _data.AuthenticationSecret) (result _data.QueryResult, err error) {
+	connectionString := getConnectionString(config, authenticationSecret)
 
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
@@ -164,7 +164,7 @@ func transformQueryResult(qc _data.QueryConfigStruct, columnTypes []*sql.ColumnT
 	return values, nil
 }
 
-func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, request *backend.QueryDataRequest, config pluginConfig, password string, privateKey string, token string) (response backend.DataResponse) {
+func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.DataQuery, request *backend.QueryDataRequest, config pluginConfig, authentication _data.AuthenticationSecret) (response backend.DataResponse) {
 	var qm queryModel
 	err := json.Unmarshal(dataQuery.JSON, &qm)
 	if err != nil {
@@ -205,7 +205,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
 	frame := data.NewFrame("")
-	dataResponse, err := fetchData(ctx, &queryConfig, &config, password, privateKey, token)
+	dataResponse, err := fetchData(ctx, &queryConfig, &config, authentication)
 	if err != nil {
 		response.Error = err
 		return response

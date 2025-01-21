@@ -119,6 +119,8 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		}
 	}
 
-	connectionString := getConnectionString(&config, password, privateKey, token)
+	authenticationSecret := data.AuthenticationSecret{Password: password, PrivateKey: privateKey, Token: token}
+
+	connectionString := getConnectionString(&config, authenticationSecret)
 	return connectionString, nil
 }
