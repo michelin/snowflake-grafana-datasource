@@ -82,7 +82,7 @@ func TestGetConnectionString(t *testing.T) {
 
 	t.Run("with string to escape", func(t *testing.T) {
 		passwordIn := "pa$$s+&"
-		connectionString := getConnectionString(&config, passwordIn, "")
+		connectionString := getConnectionString(&config, passwordIn, "", "")
 		require.Equal(t, "user%40name:pa%24%24s%2B%26@account?database=dat%40base&role=ro%40le&schema=sch%40ema&warehouse=ware%40house&conf=xxx", connectionString)
 
 		dsnParsed, err := sf.ParseDSN(connectionString)

@@ -123,13 +123,13 @@ func TestMaxChunkDownloadWorkers(t *testing.T) {
 	}
 
 	t.Run("valid MaxChunkDownloadWorkers", func(t *testing.T) {
-		getConnectionString(&config, "", "")
+		getConnectionString(&config, "", "", "")
 		require.Equal(t, 5, sf.MaxChunkDownloadWorkers)
 	})
 
 	t.Run("invalid MaxChunkDownloadWorkers", func(t *testing.T) {
 		config.MaxChunkDownloadWorkers = "invalid"
-		getConnectionString(&config, "", "")
+		getConnectionString(&config, "", "", "")
 		require.NotEqual(t, 5, sf.MaxChunkDownloadWorkers)
 	})
 }
@@ -140,13 +140,13 @@ func TestCustomJSONDecoderEnabled(t *testing.T) {
 	}
 
 	t.Run("CustomJSONDecoderEnabled true", func(t *testing.T) {
-		getConnectionString(&config, "", "")
+		getConnectionString(&config, "", "", "")
 		require.True(t, sf.CustomJSONDecoderEnabled)
 	})
 
 	t.Run("CustomJSONDecoderEnabled false", func(t *testing.T) {
 		config.CustomJSONDecoderEnabled = false
-		getConnectionString(&config, "", "")
+		getConnectionString(&config, "", "", "")
 		require.False(t, sf.CustomJSONDecoderEnabled)
 	})
 }

@@ -6,7 +6,7 @@ import {
   Input,
   SecretInput,
   SecretTextArea,
-  RadioButtonGroup
+  RadioButtonGroup, Button, Text
 } from '@grafana/ui';
 import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
 import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
@@ -24,21 +24,36 @@ const authOptions = [
 ];
 
 const LABEL_WIDTH = 30
-const INPUT_WIDTH = 40
+const INPUT_WIDTH = 50
 
 export class ConfigEditor extends PureComponent<Props, State> {
   searchParams = new URLSearchParams(location.search);
 
   constructor(props: Props) {
     super(props);
+    const { onOptionsChange, options } = this.props;
     this.state = {
       authMethod: this.props.options.jsonData.authMethod || authOptions[0].value,
     };
+    const tokenEndpoint = "https://" + options.jsonData.account + "/oauth/token-request";
+    const redirectUrl = window.location.origin + window.location.pathname;
     const code = this.searchParams.get('code');
     if (code) {
-      const { onOptionsChange, options } = this.props;
+      // Get the current URL
+      const url = new URL(window.location.href);
+      // Remove the query parameter
+      url.searchParams.delete("code");
+      // Update the URL without reloading the page
+      window.history.replaceState({}, '', url.toString());
+
+      const jsonData = {
+        ...options.jsonData,
+        tokenEndpoint: tokenEndpoint,
+        redirectUrl: redirectUrl,
+      };
       onOptionsChange({
         ...options,
+        jsonData,
         secureJsonData: {
           ...options.secureJsonData,
           code: code,
@@ -70,7 +85,6 @@ export class ConfigEditor extends PureComponent<Props, State> {
         password: '',
         privateKey: '',
         clientSecret: '',
-        clientId: ''
       },
     });
   };
@@ -254,9 +268,15 @@ export class ConfigEditor extends PureComponent<Props, State> {
 
   loginWithSnowflake = () => {
     const { options } = this.props;
-    let clientId = encodeURIComponent((options.jsonData as SnowflakeOptions).clientId || '');
-    let redirectUrl = window.location.origin + '/connections/datasources/edit/' + options.uid;
-    window.location.replace('https://'+options.jsonData.account+'/oauth/authorize?response_type=code&client_id='+ clientId +'&redirect_uri='+encodeURIComponent(redirectUrl));
+    const redirectUrl = window.location.href;
+    const clientId = encodeURIComponent((options.jsonData as SnowflakeOptions).clientId || '');
+    // Role
+    const role = (options.jsonData as SnowflakeOptions).role;
+    const encodedRole = encodeURIComponent(role ?? '');
+    const rolePrefix = role === encodedRole ? 'session:role:' : 'session:role-encoded:';
+    const roleParam = encodedRole ? `&role=${rolePrefix}${encodedRole}` : '';
+    // Redirect to Snowflake OAuth endpoint
+    window.location.replace('https://'+options.jsonData.account+'/oauth/authorize?response_type=code&client_id='+ clientId +'&redirect_uri='+encodeURIComponent(redirectUrl)+roleParam);
   }
 
   onResetClientSecret = () => {
@@ -369,21 +389,33 @@ export class ConfigEditor extends PureComponent<Props, State> {
               </InlineField>
           </div>
         )}
-        { !searchParams.has('code') && authMethod === 'oauth' && (
-            <button onClick={this.loginWithSnowflake}>
-              Login with Snowflake
-            </button>
-        )}
         <InlineField label="Role"
-                     tooltip="Global role to use for the connection"
+                     tooltip="Global role to use for the connection. With Oauth, it's used to limit the access token to a single role that the user can consent to for the session."
                      labelWidth={LABEL_WIDTH}>
-            <Input
-                width={INPUT_WIDTH}
-                onChange={this.onRoleChange}
-                value={jsonData.role ?? ''}
-                placeholder="Role"
-            />
+          <Input
+              width={INPUT_WIDTH}
+              onChange={this.onRoleChange}
+              value={jsonData.role ?? ''}
+              placeholder="Role"
+          />
         </InlineField>
+        { authMethod === 'oauth' && (
+            <>
+            { !searchParams.has('code') ? (
+                <InlineField label="OAuth flow"
+                             tooltip="Open Snowflake OAuth flow to authenticate"
+                             labelWidth={LABEL_WIDTH}>
+                  <Button onClick={this.loginWithSnowflake}>
+                    Login with Snowflake
+                  </Button>
+                </InlineField>
+            ) : (
+                <Text color="success" element="p">
+                  Successfully authenticated with Snowflake, you can configure and save the datasource.
+                </Text>
+            )}
+            </>
+        )}
         <br/>
         <h3 className="page-heading">Parameter configuration</h3>
 
@@ -429,7 +461,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
               width={INPUT_WIDTH}
               onChange={this.onExtraOptionChange}
               value={jsonData.extraConfig ?? ''}
-              placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&XXXXX=yyyyy&..."
+              placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&..."
           />
         </InlineField>
         <br/>

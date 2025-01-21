@@ -11,6 +11,7 @@ type Oauth struct {
 	clientId      string
 	clientSecret  string
 	tokenEndpoint string
+	redirectUrl   string
 	code          string
 }
 
@@ -18,14 +19,14 @@ var tokenSource oauth2.TokenSource
 
 // get token from code oauth flow
 func getTokenFromCode(oauth Oauth) (string, error) {
-	if oauth.clientId == "" || oauth.clientSecret == "" || oauth.tokenEndpoint == "" || oauth.code == "" {
+	if oauth.clientId == "" || oauth.clientSecret == "" || oauth.tokenEndpoint == "" || oauth.code == "" || oauth.redirectUrl == "" {
 		return "", nil
 	}
 
 	config := &oauth2.Config{
 		ClientID:     oauth.clientId,
 		ClientSecret: oauth.clientSecret,
-		RedirectURL:  "http://localhost:3000/connections/datasources/edit/de169k24p8agwe",
+		RedirectURL:  oauth.redirectUrl,
 		Endpoint: oauth2.Endpoint{
 			TokenURL:  oauth.tokenEndpoint,
 			AuthStyle: oauth2.AuthStyleInHeader,

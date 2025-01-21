@@ -105,6 +105,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 			request: &backend.CheckHealthRequest{
 				PluginContext: backend.PluginContext{
 					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{}"),
 						DecryptedSecureJSONData: map[string]string{"password": ""},
 					},
 				},
@@ -205,7 +206,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All Oauth fields are required."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource."},
 		},
 		{
 			name: "missing Token Endpoint",
@@ -217,7 +218,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All Oauth fields are required."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource."},
 		},
 		{
 			name: "missing ClientId",
@@ -229,7 +230,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All Oauth fields are required."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource."},
 		},
 		{
 			name: "valid User Password Auth And ExtraConfig",
@@ -271,8 +272,8 @@ func TestCreateAndValidationConnectionStringWithOauth(t *testing.T) {
 	req := &backend.CheckHealthRequest{
 		PluginContext: backend.PluginContext{
 			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
-				JSONData:                []byte("{\"account\":\"test\",\"extraConfig\":\"config=conf\"}"),
-				DecryptedSecureJSONData: map[string]string{"clientId": "t", "clientSecret": "t", "tokenEndpoint": ts.URL},
+				JSONData:                []byte("{\"account\":\"test\",\"extraConfig\":\"config=conf\",\"clientId\": \"t\", \"tokenEndpoint\": \"" + ts.URL + "\", \"redirectUrl\": \"redirect\"}"),
+				DecryptedSecureJSONData: map[string]string{"code": "xxx", "clientSecret": "t"},
 			},
 		},
 	}
@@ -293,13 +294,13 @@ func TestOauthTokenIssue(t *testing.T) {
 	req := &backend.CheckHealthRequest{
 		PluginContext: backend.PluginContext{
 			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
-				JSONData:                []byte("{\"account\":\"test\"}"),
-				DecryptedSecureJSONData: map[string]string{"clientId": "t", "clientSecret": "t", "tokenEndpoint": ts.URL},
+				JSONData:                []byte("{\"account\":\"test\",\"clientId\": \"t\", \"tokenEndpoint\": \"" + ts.URL + "\", \"redirectUrl\": \"redirect\"}"),
+				DecryptedSecureJSONData: map[string]string{"clientSecret": "t", "code": "xxx"},
 			},
 		},
 	}
 	con, result := createAndValidationConnectionString(req)
 	require.Empty(t, con)
 	require.Equal(t, result.Status, backend.HealthStatusError)
-	require.Equal(t, result.Message, "Error getting token: oauth2: \"invalid_request\"")
+	require.Equal(t, "Error getting token: oauth2: \"invalid_request\"", result.Message)
 }

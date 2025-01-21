@@ -60,8 +60,9 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	oauth := Oauth{
 		clientId:      config.ClientId,
 		clientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
-		tokenEndpoint: config.Account + "/oauth/token-request",
 		code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
+		tokenEndpoint: config.TokenEndpoint,
+		redirectUrl:   config.RedirectUrl,
 	}
 
 	token, err := getToken(oauth, false)
@@ -90,6 +91,8 @@ type pluginConfig struct {
 	MaxChunkDownloadWorkers  string `json:"maxChunkDownloadWorkers"`
 	CustomJSONDecoderEnabled bool   `json:"customJSONDecoderEnabled"`
 	ClientId                 string `json:"clientId"`
+	TokenEndpoint            string `json:"tokenEndpoint"`
+	RedirectUrl              string `json:"redirectUrl"`
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {

@@ -34,6 +34,8 @@ export interface SnowflakeOptions extends DataSourceJsonData {
   customJSONDecoderEnabled: boolean;
   authMethod: string;
   clientId?: string;
+  tokenEndpoint?: string;
+  redirectUrl?: string;
 }
 
 /**
@@ -43,5 +45,4 @@ export interface SnowflakeSecureOptions {
   password?: string;
   privateKey?: string;
   clientSecret?: string;
-  tokenEndpoint?: string;
 }
