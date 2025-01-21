@@ -42,7 +42,7 @@ func GetTokenFromCode(oauth Oauth) (string, error) {
 	return token.AccessToken, nil
 }
 
-// GetToken get token from client credentials oauth flow
+// Get
 func GetToken(oauth Oauth, recreate bool) (string, error) {
 	if oauth.ClientId == "" || oauth.ClientSecret == "" || oauth.TokenEndpoint == "" {
 		return "", nil
