@@ -42,7 +42,15 @@ docker run -d \
 grafana/grafana
 ```
 
+> [!NOTE]
+> Please refer to the documentation for more details.
+https://grafana.com/docs/grafana/latest/administration/plugin-management/#allow-unsigned-plugins
+
 3. Restart grafana
+Restart the Grafana server to apply the changes:
+``` bash
+service grafana-server restart
+```
 
 #### Configure the Datasource
 
@@ -57,21 +65,21 @@ Add your authentication and [configuration details](https://docs.snowflake.com/e
 
 Available configuration fields are as follows:
 
- Name                     | Description
-------------------------- | ------------
- Account Name             | Specifies the full name of your account (provided by Snowflake) 
- Username                 | Specifies the login name of the user for the connection.
- Password                 | Specifies the password for the specified user.
- Private key              | Specifies the private key.
- Client Id                | Specifies the Oauth client ID.
- Client Secret            | Specifies the Oauth client Secret.
- Role (Optional)          | Specifies the default access control role to use in the Snowflake session initiated by Grafana.
- Warehouse (Optional)     | Specifies the virtual warehouse to use once connected. 
- Database (Optional)      | Specifies the default database to use once connected. 
- Schema (Optional)        | Specifies the default schema to use for the specified database once connected. 
- Extra Options (Optional) | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string. 
+| Name                     | Description                                                                                                                                                                                                    |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Account Name             | Specifies the full name of your account (provided by Snowflake)                                                                                                                                                |
+| Username                 | Specifies the login name of the user for the connection.                                                                                                                                                       |
+| Password                 | Specifies the password for the specified user.                                                                                                                                                                 |
+| Private key              | Specifies the private key.                                                                                                                                                                                     |
+| Client Id                | Specifies the Oauth client ID.                                                                                                                                                                                 |
+| Client Secret            | Specifies the Oauth client Secret.                                                                                                                                                                             |
+| Role (Optional)          | Specifies the default access control role to use in the Snowflake session initiated by Grafana. With Oauth, it's used to limit the access token to a single role that the user can consent to for the session. |
+| Warehouse (Optional)     | Specifies the virtual warehouse to use once connected.                                                                                                                                                         |
+| Database (Optional)      | Specifies the default database to use once connected.                                                                                                                                                          |
+| Schema (Optional)        | Specifies the default schema to use for the specified database once connected.                                                                                                                                 |
+| Extra Options (Optional) | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string.                 |
 
-**OAuth authentication**
+**Snowflake OAuth authentication**
 
 The plugin supports Snowflake OAuth authentication.<br/>
 To use OAuth, you need to create an OAuth custom integration in your Snowflake account. You can follow the steps in the [Snowflake documentation](https://docs.snowflake.com/en/sql-reference/sql/create-security-integration-oauth-snowflake).
@@ -92,6 +100,7 @@ SELECT SYSTEM$SHOW_OAUTH_CLIENT_SECRETS('SNOWFLAKE_GRAFANA');
 
 -- Use ClientId and ClientSecret in the Grafana datasource configuration
 ```
+
 
 #### Supported Macros
 
@@ -131,6 +140,9 @@ For Time series query:
 * A numerical column must be included.
 
 ![Query editor](img/query.png)
+
+> [!CAUTION]
+> This plugin cannot identify malicious code in queries executed on Snowflake and assumes no responsibility for their execution. As a precaution, use a ROLE with minimal privileges, configured to grant read-only access
 
 ##### Query Variables
 
@@ -222,6 +234,9 @@ You can follow the steps in the [Snowflake documentation](https://docs.snowflake
 Snowflake caches queries with the same footprint / hash in its own query-cache. Since a Grafana query mostly has a now() component the cache will never be used.
 To get more queries with the same hash use the two macros `$__timeRoundFrom(d)` and `$__timeRoundTo(d)` to create wider truncated timestamps. This is no problem for timeseries charts. Grafana cuts it's x-Axis to the selected dashboard time window. If a table is displayed the whole result will be presented and it could be slightly out of the time window.\
 More info about snowflake-side caching: https://docs.snowflake.com/en/user-guide/querying-persisted-results#retrieval-optimization
+
+## Supported Grafana Versions
+This plugin supports only version with [Active Support from Grafana](https://grafana.com/docs/grafana/next/upgrade-guide/when-to-upgrade/?pg=blog&plcmt=body-txt#what-to-know-about-version-support).
 
 ## Development
 
