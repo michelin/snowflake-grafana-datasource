@@ -1,15 +1,17 @@
 import React, {ChangeEvent, PureComponent} from 'react';
 import {
+  Button,
   Checkbox,
   ControlledCollapse,
   InlineField,
   Input,
+  RadioButtonGroup,
   SecretInput,
   SecretTextArea,
-  RadioButtonGroup, Button, Text
+  Text
 } from '@grafana/ui';
 import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
-import { SnowflakeOptions, SnowflakeSecureOptions } from './types';
+import {SnowflakeOptions, SnowflakeSecureOptions} from './types';
 
 interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> {}
 
@@ -33,7 +35,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
     super(props);
     const { onOptionsChange, options } = this.props;
     this.state = {
-      authMethod: this.props.options.jsonData.authMethod || authOptions[0].value,
+      authMethod: this.props.options.jsonData.authMethod ?? authOptions[0].value,
     };
     const tokenEndpoint = "https://" + options.jsonData.account + "/oauth/token-request";
     const redirectUrl = window.location.origin + window.location.pathname;
@@ -64,7 +66,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
 
   onAuthMethodChange = (value: string) => {
     const { onOptionsChange, options } = this.props;
-    const authMethod = value || 'password';
+    const authMethod = value ?? 'password';
     this.setState({ authMethod: authMethod });
     const jsonData = {
       ...options.jsonData,
@@ -269,9 +271,9 @@ export class ConfigEditor extends PureComponent<Props, State> {
   loginWithSnowflake = () => {
     const { options } = this.props;
     const redirectUrl = window.location.href;
-    const clientId = encodeURIComponent((options.jsonData as SnowflakeOptions).clientId || '');
+    const clientId = encodeURIComponent(options.jsonData.clientId ?? '');
     // Role
-    const role = (options.jsonData as SnowflakeOptions).role;
+    const role = options.jsonData.role;
     const encodedRole = encodeURIComponent(role ?? '');
     const rolePrefix = role === encodedRole ? 'session:role:' : 'session:role-encoded:';
     const roleParam = encodedRole ? `&role=${rolePrefix}${encodedRole}` : '';
@@ -297,7 +299,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
   render() {
     const { options } = this.props;
     const { jsonData, secureJsonFields } = options;
-    const secureJsonData = (options.secureJsonData || {}) as SnowflakeSecureOptions;
+    const secureJsonData = (options.secureJsonData ?? {}) as SnowflakeSecureOptions;
     const { authMethod } = this.state;
     const searchParams = this.searchParams;
 
@@ -371,7 +373,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
                            tooltip="Oauth client ID"
                            labelWidth={LABEL_WIDTH}>
                   <Input
-                      value={jsonData.clientId || ''}
+                      value={jsonData.clientId ?? ''}
                       width={INPUT_WIDTH}
                       onChange={this.onClientIdChange}
                   />
