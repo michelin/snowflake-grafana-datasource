@@ -68,7 +68,7 @@
     "@grafana/data": "^11.3.0",
     "@grafana/runtime": "^11.3.0",
     "@grafana/schema": "^11.3.0",
-    "@grafana/ui": "^11.3.0",
+    "@grafana/ui": "^11.4.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "sql-formatter": "^15.2.0",
