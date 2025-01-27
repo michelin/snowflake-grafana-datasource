@@ -54,7 +54,7 @@
     "webpack-cli": "^5.1.4",
     "webpack-livereload-plugin": "^3.0.2",
     "@types/react-router-dom": "^5.2.0",
-    "eslint-plugin-deprecation": "^2.0.0",
+    "eslint-plugin-deprecation": "^3.0.0",
     "imports-loader": "^5.0.0",
     "terser-webpack-plugin": "^5.3.10",
     "webpack-subresource-integrity": "^5.1.0",
