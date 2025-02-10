@@ -64,7 +64,7 @@
     "node": ">=14"
   },
   "dependencies": {
-    "@emotion/css": "11.10.6",
+    "@emotion/css": "11.13.5",
     "@grafana/data": "^11.3.0",
     "@grafana/runtime": "^11.3.0",
     "@grafana/schema": "^11.3.0",
