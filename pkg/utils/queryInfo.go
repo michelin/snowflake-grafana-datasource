@@ -24,7 +24,7 @@ func AddQueryTagInfos(ctx context.Context, qc *data.QueryConfigStruct) context.C
 	// Grafana Host
 	var grafanaHost = ""
 	if pluginConfig.GrafanaConfig != nil {
-		grafanaHost = pluginConfig.GrafanaConfig.Get("GF_APP_URL")
+		grafanaHost = pluginConfig.GrafanaConfig.Get(backend.AppURL)
 	}
 
 	// Datasource ID
