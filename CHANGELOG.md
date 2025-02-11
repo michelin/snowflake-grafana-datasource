@@ -5,6 +5,8 @@
 ### ⭐ Added
 - Add a query tag that includes relevant Grafana context information.
 
+### 🐞 Bug Fixes
+- Source query variables are replaced with hardcoded values in the query editor UI.
 
 ## 1.9.1
 
