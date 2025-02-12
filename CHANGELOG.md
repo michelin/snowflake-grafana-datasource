@@ -15,6 +15,7 @@
 - Update deprecated APIs
 - Upgrade grafana-plugin-sdk-go to version v0.265.0.
 - Upgrade gosnowflake to version v1.13.0.
+- Upgrade go to version 1.23.
 
 ## 1.9.1
 

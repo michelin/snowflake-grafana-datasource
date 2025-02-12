@@ -27,7 +27,6 @@ const LABEL_WIDTH = 30
 const INPUT_WIDTH = 50
 
 export class ConfigEditor extends PureComponent<Props, State> {
-  searchParams = new URLSearchParams(location.search);
 
   constructor(props: Props) {
     super(props);

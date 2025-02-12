@@ -26,20 +26,14 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 		var err error
 		td.db, err = sql.Open("snowflake", connectionString)
 		if err != nil {
-			return &backend.CheckHealthResult{
-				Status:  backend.HealthStatusError,
-				Message: fmt.Sprintf("Connection issue : %s", err),
-			}, nil
+			return createHealthError(fmt.Sprintf("Connection issue : %s", err)), nil
 		}
 	}
 	defer td.db.Close()
 
 	row, err := td.db.QueryContext(utils.AddQueryTagInfos(ctx, &data.QueryConfigStruct{}), "SELECT 1")
 	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Validation query error : %s", err),
-		}, nil
+		return createHealthError(fmt.Sprintf("Validation query error : %s", err)), nil
 	}
 
 	defer row.Close()
@@ -50,14 +44,37 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 	}, nil
 }
 
+// createHealthError creates an error result
+func createHealthError(message string) *backend.CheckHealthResult {
+	return &backend.CheckHealthResult{
+		Status:  backend.HealthStatusError,
+		Message: message,
+	}
+}
+
+// validateAuthFields validates the authentication fields
+func validateAuthFields(password, privateKey string, oauth _oauth.Oauth) *backend.CheckHealthResult {
+	if password == "" && privateKey == "" && oauth.ClientSecret == "" {
+		return createHealthError("Password or private key or Oauth fields are required.")
+	}
+
+	if (password != "" && (privateKey != "" || oauth.ClientSecret != "")) || (privateKey != "" && oauth.ClientSecret != "") {
+		return createHealthError("Only one authentication method must be provided.")
+	}
+
+	if password == "" && privateKey == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "") {
+		return createHealthError("All OAuth fields are mandatory.")
+	}
+
+	return nil
+}
+
+// createAndValidationConnectionString creates a connection string and validates the configuration
 func createAndValidationConnectionString(req *backend.CheckHealthRequest) (string, *backend.CheckHealthResult) {
 
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Error getting config: %s", err),
-		}
+		return "", createHealthError(fmt.Sprintf("Error getting config: %s", err))
 	}
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
@@ -69,39 +86,16 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		TokenEndpoint: config.TokenEndpoint,
 	}
 
-	if password == "" && privateKey == "" && oauth.ClientSecret == "" {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Password or private key or Oauth fields are required.",
-		}
-	}
-
-	if (password != "" && (privateKey != "" || oauth.ClientSecret != "")) || (privateKey != "" && oauth.ClientSecret != "") {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Only one authentication method must be provided.",
-		}
-	}
-
-	if password == "" && privateKey == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "") {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "All OAuth fields are mandatory.",
-		}
+	if validationResult := validateAuthFields(password, privateKey, oauth); validationResult != nil {
+		return "", validationResult
 	}
 
 	if config.Account == "" {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Account not provided",
-		}
+		return "", createHealthError("Account not provided")
 	}
 
 	if config.Username == "" && (password != "" || privateKey != "") {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Username not provided",
-		}
+		return "", createHealthError("Username not provided")
 	}
 
 	if len(config.ExtraConfig) > 0 {
@@ -112,10 +106,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 
 	token, err := _oauth.GetToken(oauth, true)
 	if err != nil {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Error getting token: %s", err),
-		}
+		return "", createHealthError(fmt.Sprintf("Error getting token: %s", err))
 	}
 
 	authenticationSecret := data.AuthenticationSecret{Password: password, PrivateKey: privateKey, Token: token}

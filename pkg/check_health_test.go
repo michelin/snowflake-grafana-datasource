@@ -304,3 +304,15 @@ func TestOauthTokenIssue(t *testing.T) {
 	require.Equal(t, result.Status, backend.HealthStatusError)
 	require.Equal(t, "Error getting token: oauth2: \"invalid_request\"", result.Message)
 }
+
+func TestErrorResultWithMessage(t *testing.T) {
+	result := createHealthError("Test error message")
+	require.Equal(t, backend.HealthStatusError, result.Status)
+	require.Equal(t, "Test error message", result.Message)
+}
+
+func TestErrorResultWithEmptyMessage(t *testing.T) {
+	result := createHealthError("")
+	require.Equal(t, backend.HealthStatusError, result.Status)
+	require.Equal(t, "", result.Message)
+}
