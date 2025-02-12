@@ -96,13 +96,13 @@ func TestGetConnectionString(t *testing.T) {
 
 func TestCreatesNewDataSourceInstance(t *testing.T) {
 	settings := backend.DataSourceInstanceSettings{}
-	instance, err := newDataSourceInstance(context.Background(), settings)
+	instance, err := NewDataSourceInstance(context.Background(), settings)
 	require.NoError(t, err)
 	require.NotNil(t, instance)
 }
 
 func TestDisposesInstanceWithoutError(t *testing.T) {
-	instance := &instanceSettings{}
+	instance := &SnowflakeDatasource{}
 	require.NotPanics(t, func() {
 		instance.Dispose()
 	})

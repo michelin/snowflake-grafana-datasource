@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 
@@ -18,27 +17,11 @@ import (
 	"net/url"
 )
 
-// newDatasource returns datasource.ServeOpts.
-func newDatasource() datasource.ServeOpts {
-	// creates a instance manager for your plugin. The function passed
-	// into `NewInstanceManger` is called when the instance is created
-	// for the first time or when a datasource configuration changed.
-	im := datasource.NewInstanceManager(newDataSourceInstance)
-	ds := &SnowflakeDatasource{
-		im: im,
-	}
-
-	return datasource.ServeOpts{
-		QueryDataHandler:   ds,
-		CheckHealthHandler: ds,
-	}
-}
+var (
+	_ backend.QueryDataHandler = (*SnowflakeDatasource)(nil)
+)
 
 type SnowflakeDatasource struct {
-	// The instance manager can help with lifecycle management
-	// of datasource instances in plugins. It's not a requirements
-	// but a best practice that we recommend that you follow.
-	im instancemgmt.InstanceManager
 	db *sql.DB
 }
 
@@ -62,9 +45,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	oauth := _oauth.Oauth{
 		ClientId:      config.ClientId,
 		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
-		Code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
 		TokenEndpoint: config.TokenEndpoint,
-		RedirectUrl:   config.RedirectUrl,
 	}
 
 	token, err := _oauth.GetToken(oauth, false)
@@ -142,14 +123,12 @@ func getConnectionString(config *pluginConfig, authenticationSecret data.Authent
 	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }
 
-type instanceSettings struct {
-}
-
-func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func NewDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	log.DefaultLogger.Info("Creating instance")
-	return &instanceSettings{}, nil
+	datasource := &SnowflakeDatasource{}
+	return datasource, nil
 }
 
-func (s *instanceSettings) Dispose() {
+func (s *SnowflakeDatasource) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
 }

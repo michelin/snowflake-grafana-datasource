@@ -66,9 +66,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 	oauth := _oauth.Oauth{
 		ClientId:      config.ClientId,
 		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
-		Code:          req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["code"],
 		TokenEndpoint: config.TokenEndpoint,
-		RedirectUrl:   config.RedirectUrl,
 	}
 
 	if password == "" && privateKey == "" && oauth.ClientSecret == "" {
@@ -85,10 +83,10 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		}
 	}
 
-	if password == "" && privateKey == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "" || oauth.Code == "") {
+	if password == "" && privateKey == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "") {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
-			Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource.",
+			Message: "All OAuth fields are mandatory.",
 		}
 	}
 
@@ -112,7 +110,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		config.ExtraConfig = "validateDefaultParameters=true"
 	}
 
-	token, err := _oauth.GetTokenFromCode(oauth)
+	token, err := _oauth.GetToken(oauth, true)
 	if err != nil {
 		return "", &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,

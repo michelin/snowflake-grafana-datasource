@@ -73,34 +73,35 @@ Available configuration fields are as follows:
 | Private key              | Specifies the private key.                                                                                                                                                                                     |
 | Client Id                | Specifies the Oauth client ID.                                                                                                                                                                                 |
 | Client Secret            | Specifies the Oauth client Secret.                                                                                                                                                                             |
+| Token Endpoint           | Specifies the Oauth Token endpoint.                                                                                                                                                                            |
 | Role (Optional)          | Specifies the default access control role to use in the Snowflake session initiated by Grafana. With Oauth, it's used to limit the access token to a single role that the user can consent to for the session. |
 | Warehouse (Optional)     | Specifies the virtual warehouse to use once connected.                                                                                                                                                         |
 | Database (Optional)      | Specifies the default database to use once connected.                                                                                                                                                          |
 | Schema (Optional)        | Specifies the default schema to use for the specified database once connected.                                                                                                                                 |
 | Extra Options (Optional) | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string.                 |
 
-**Snowflake OAuth authentication**
+**External OAuth authentication**
 
-The plugin supports Snowflake OAuth authentication.<br/>
-To use OAuth, you need to create an OAuth custom integration in your Snowflake account. You can follow the steps in the [Snowflake documentation](https://docs.snowflake.com/en/sql-reference/sql/create-security-integration-oauth-snowflake).
+> [!NOTE]
+> Snowflake oauth authentication is not supported without external service (like Okta, Azure Entra, Keycloak ...) because of the lack of support for oauth Client credentials flow in snowflake.
+https://docs.snowflake.com/en/user-guide/oauth-intro
+
+The plugin supports OAuth authentication with snowflake only with external_service.<br/>
+To use OAuth, you need to create an [external OAuth](https://docs.snowflake.com/en/user-guide/oauth-ext-custom) integration in your Snowflake account.
 ```sql
--- Create a security integration for Snowflake OAuth
-CREATE OR REPLACE SECURITY INTEGRATION SNOWFLAKE_GRAFANA
-  TYPE = oauth
-  ENABLED = true
-  OAUTH_CLIENT = custom
-  OAUTH_CLIENT_TYPE = 'CONFIDENTIAL'
-  OAUTH_REDIRECT_URI = 'http://localhost:3000/connections/datasources/edit/de169k24p8agwe' -- Grafana Snowflake datasource URL
-  OAUTH_ISSUE_REFRESH_TOKENS = TRUE
-  OAUTH_ALLOW_NON_TLS_REDIRECT_URI= TRUE
-  OAUTH_REFRESH_TOKEN_VALIDITY = 86400;
-
--- list the security integration details
-SELECT SYSTEM$SHOW_OAUTH_CLIENT_SECRETS('SNOWFLAKE_GRAFANA');
-
--- Use ClientId and ClientSecret in the Grafana datasource configuration
+-- Create a security integration for external OAuth flow
+CREATE OR REPLACE SECURITY INTEGRATION keycloak_oauth_integration
+TYPE = EXTERNAL_OAUTH
+ENABLED = TRUE
+EXTERNAL_OAUTH_TYPE = CUSTOM
+EXTERNAL_OAUTH_SCOPE_MAPPING_ATTRIBUTE = 'scope'
+EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM = 'name'
+EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE = 'login_name'
+EXTERNAL_OAUTH_ALLOWED_ROLES_LIST = ('<xxxxx>')
+EXTERNAL_OAUTH_AUDIENCE_LIST =('https://xxxxx')
+EXTERNAL_OAUTH_RSA_PUBLIC_KEY = 'MIIBIj'
+EXTERNAL_OAUTH_ISSUER = 'https://xxxxx';
 ```
-
 
 #### Supported Macros
 

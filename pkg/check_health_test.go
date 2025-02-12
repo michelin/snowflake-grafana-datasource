@@ -206,31 +206,31 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory."},
 		},
 		{
 			name: "missing Token Endpoint",
 			request: &backend.CheckHealthRequest{
 				PluginContext: backend.PluginContext{
 					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
-						JSONData:                []byte("{\"account\":\"test\"}"),
-						DecryptedSecureJSONData: map[string]string{"clientId": "t", "clientSecret": "t"},
+						JSONData:                []byte("{\"account\":\"test\", \"clientId\": \"t\"}"),
+						DecryptedSecureJSONData: map[string]string{"clientSecret": "t"},
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory."},
 		},
 		{
 			name: "missing ClientId",
 			request: &backend.CheckHealthRequest{
 				PluginContext: backend.PluginContext{
 					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
-						JSONData:                []byte("{\"account\":\"test\"}"),
-						DecryptedSecureJSONData: map[string]string{"tokenEndpoint": "t", "clientSecret": "t"},
+						JSONData:                []byte("{\"account\":\"test\", \"tokenEndpoint\": \"t\"}"),
+						DecryptedSecureJSONData: map[string]string{"clientSecret": "t"},
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory. Please click the 'Login with Snowflake' button to proceed before saving the datasource."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "All OAuth fields are mandatory."},
 		},
 		{
 			name: "valid User Password Auth And ExtraConfig",
@@ -273,7 +273,7 @@ func TestCreateAndValidationConnectionStringWithOauth(t *testing.T) {
 		PluginContext: backend.PluginContext{
 			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
 				JSONData:                []byte("{\"account\":\"test\",\"extraConfig\":\"config=conf\",\"clientId\": \"t\", \"tokenEndpoint\": \"" + ts.URL + "\", \"redirectUrl\": \"redirect\"}"),
-				DecryptedSecureJSONData: map[string]string{"code": "xxx", "clientSecret": "t"},
+				DecryptedSecureJSONData: map[string]string{"clientSecret": "t"},
 			},
 		},
 	}
@@ -295,7 +295,7 @@ func TestOauthTokenIssue(t *testing.T) {
 		PluginContext: backend.PluginContext{
 			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
 				JSONData:                []byte("{\"account\":\"test\",\"clientId\": \"t\", \"tokenEndpoint\": \"" + ts.URL + "\", \"redirectUrl\": \"redirect\"}"),
-				DecryptedSecureJSONData: map[string]string{"clientSecret": "t", "code": "xxx"},
+				DecryptedSecureJSONData: map[string]string{"clientSecret": "t"},
 			},
 		},
 	}

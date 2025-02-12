@@ -9,6 +9,7 @@
 ### 🔨 Changed
 - Rewrite the datasource configuration UI (ease authentication selection).
 - Support non encoded private key in the datasource configuration.
+- Update deprecated APIs
 - Upgrade grafana-plugin-sdk-go to version v0.262.0.
 - Upgrade gosnowflake to version v1.12.1.
 
