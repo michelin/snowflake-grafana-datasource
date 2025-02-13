@@ -90,7 +90,7 @@ The plugin supports OAuth authentication with snowflake only with external_servi
 To use OAuth, you need to create an [external OAuth](https://docs.snowflake.com/en/user-guide/oauth-ext-custom) integration in your Snowflake account.
 ```sql
 -- Create a security integration for external OAuth flow
-CREATE OR REPLACE SECURITY INTEGRATION keycloak_oauth_integration
+CREATE OR REPLACE SECURITY INTEGRATION OAUTH_INTEGRATION
 TYPE = EXTERNAL_OAUTH
 ENABLED = TRUE
 EXTERNAL_OAUTH_TYPE = CUSTOM
