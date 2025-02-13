@@ -208,9 +208,6 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	for _, table := range dataResponse.Tables {
 		timeColumnIndex := -1
 		for i, column := range table.Columns {
-			if err != nil {
-				return backend.DataResponse{}
-			}
 			// Check time column
 			if queryConfig.IsTimeSeriesType() && utils.EqualsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
 				if strings.EqualFold(column.Name(), "Time") {
