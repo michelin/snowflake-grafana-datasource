@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	sf "github.com/snowflakedb/gosnowflake"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -51,18 +52,23 @@ func TestGetConnectionString(t *testing.T) {
 	}
 
 	t.Run("with User/pass", func(t *testing.T) {
-		connectionString := getConnectionString(&config, "password", "")
+		connectionString := getConnectionString(&config, data.AuthenticationSecret{Password: "password", PrivateKey: "", Token: ""})
 		require.Equal(t, "username:password@account?database=database&role=role&schema=schema&warehouse=warehouse&conf=xxx", connectionString)
 	})
 
 	t.Run("with private key", func(t *testing.T) {
-		connectionString := getConnectionString(&config, "", "privateKey")
+		connectionString := getConnectionString(&config, data.AuthenticationSecret{Password: "", PrivateKey: "privateKey", Token: ""})
 		require.Equal(t, "username@account?authenticator=SNOWFLAKE_JWT&database=database&privateKey=privateKey&role=role&schema=schema&warehouse=warehouse&conf=xxx", connectionString)
 	})
 
 	t.Run("with User/pass special char", func(t *testing.T) {
-		connectionString := getConnectionString(&config, "p@sswor/d", "")
+		connectionString := getConnectionString(&config, data.AuthenticationSecret{Password: "p@sswor/d", PrivateKey: "", Token: ""})
 		require.Equal(t, "username:p%40sswor%2Fd@account?database=database&role=role&schema=schema&warehouse=warehouse&conf=xxx", connectionString)
+	})
+
+	t.Run("with token", func(t *testing.T) {
+		connectionString := getConnectionString(&config, data.AuthenticationSecret{Password: "", PrivateKey: "", Token: "xxxxxxxx"})
+		require.Equal(t, "account?authenticator=oauth&database=database&role=role&schema=schema&token=xxxxxxxx&warehouse=warehouse&conf=xxx", connectionString)
 	})
 
 	config = pluginConfig{
@@ -77,7 +83,7 @@ func TestGetConnectionString(t *testing.T) {
 
 	t.Run("with string to escape", func(t *testing.T) {
 		passwordIn := "pa$$s+&"
-		connectionString := getConnectionString(&config, passwordIn, "")
+		connectionString := getConnectionString(&config, data.AuthenticationSecret{Password: passwordIn, PrivateKey: "", Token: ""})
 		require.Equal(t, "user%40name:pa%24%24s%2B%26@account?database=dat%40base&role=ro%40le&schema=sch%40ema&warehouse=ware%40house&conf=xxx", connectionString)
 
 		dsnParsed, err := sf.ParseDSN(connectionString)
@@ -90,13 +96,13 @@ func TestGetConnectionString(t *testing.T) {
 
 func TestCreatesNewDataSourceInstance(t *testing.T) {
 	settings := backend.DataSourceInstanceSettings{}
-	instance, err := newDataSourceInstance(context.Background(), settings)
+	instance, err := NewDataSourceInstance(context.Background(), settings)
 	require.NoError(t, err)
 	require.NotNil(t, instance)
 }
 
 func TestDisposesInstanceWithoutError(t *testing.T) {
-	instance := &instanceSettings{}
+	instance := &SnowflakeDatasource{}
 	require.NotPanics(t, func() {
 		instance.Dispose()
 	})

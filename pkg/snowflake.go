@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
 	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 
@@ -16,27 +17,11 @@ import (
 	"net/url"
 )
 
-// newDatasource returns datasource.ServeOpts.
-func newDatasource() datasource.ServeOpts {
-	// creates a instance manager for your plugin. The function passed
-	// into `NewInstanceManger` is called when the instance is created
-	// for the first time or when a datasource configuration changed.
-	im := datasource.NewInstanceManager(newDataSourceInstance)
-	ds := &SnowflakeDatasource{
-		im: im,
-	}
-
-	return datasource.ServeOpts{
-		QueryDataHandler:   ds,
-		CheckHealthHandler: ds,
-	}
-}
+var (
+	_ backend.QueryDataHandler = (*SnowflakeDatasource)(nil)
+)
 
 type SnowflakeDatasource struct {
-	// The instance manager can help with lifecycle management
-	// of datasource instances in plugins. It's not a requirements
-	// but a best practice that we recommend that you follow.
-	im instancemgmt.InstanceManager
 	db *sql.DB
 }
 
@@ -49,20 +34,36 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	// create response struct
 	response := backend.NewQueryDataResponse()
 
-	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
-
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
 		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
 		return response, err
 	}
 
+	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	oauth := _oauth.Oauth{
+		ClientId:      config.ClientId,
+		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		TokenEndpoint: config.TokenEndpoint,
+	}
+
+	token, err := _oauth.GetToken(oauth, false)
+	if err != nil {
+		return response, err
+	}
+
+	authenticationSecret := data.AuthenticationSecret{
+		Password:   password,
+		PrivateKey: privateKey,
+		Token:      token,
+	}
+
 	// loop over queries and execute them individually.
 	for _, q := range req.Queries {
 		// save the response in a hashmap
 		// based on with RefID as identifier
-		response.Responses[q.RefID] = td.query(ctx, q, req, config, password, privateKey)
+		response.Responses[q.RefID] = td.query(ctx, q, req, config, authenticationSecret)
 	}
 
 	return response, nil
@@ -78,6 +79,9 @@ type pluginConfig struct {
 	ExtraConfig              string `json:"extraConfig"`
 	MaxChunkDownloadWorkers  string `json:"maxChunkDownloadWorkers"`
 	CustomJSONDecoderEnabled bool   `json:"customJSONDecoderEnabled"`
+	ClientId                 string `json:"clientId"`
+	TokenEndpoint            string `json:"tokenEndpoint"`
+	RedirectUrl              string `json:"redirectUrl"`
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {
@@ -89,7 +93,7 @@ func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, erro
 	return config, nil
 }
 
-func getConnectionString(config *pluginConfig, password string, privateKey string) string {
+func getConnectionString(config *pluginConfig, authenticationSecret data.AuthenticationSecret) string {
 	params := url.Values{}
 	params.Add("role", config.Role)
 	params.Add("warehouse", config.Warehouse)
@@ -106,25 +110,25 @@ func getConnectionString(config *pluginConfig, password string, privateKey strin
 	sf.CustomJSONDecoderEnabled = config.CustomJSONDecoderEnabled
 
 	var userPass = ""
-	if len(privateKey) != 0 {
+	if len(authenticationSecret.PrivateKey) != 0 {
 		params.Add("authenticator", "SNOWFLAKE_JWT")
-		params.Add("privateKey", privateKey)
-		userPass = url.QueryEscape(config.Username)
+		params.Add("privateKey", authenticationSecret.PrivateKey)
+		userPass = url.QueryEscape(config.Username) + "@"
+	} else if len(authenticationSecret.Token) != 0 {
+		params.Add("authenticator", "oauth")
+		params.Add("token", authenticationSecret.Token)
 	} else {
-		userPass = url.QueryEscape(config.Username) + ":" + url.QueryEscape(password)
+		userPass = url.QueryEscape(config.Username) + ":" + url.QueryEscape(authenticationSecret.Password) + "@"
 	}
-
-	return fmt.Sprintf("%s@%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
+	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }
 
-type instanceSettings struct {
-}
-
-func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func NewDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	log.DefaultLogger.Info("Creating instance")
-	return &instanceSettings{}, nil
+	datasource := &SnowflakeDatasource{}
+	return datasource, nil
 }
 
-func (s *instanceSettings) Dispose() {
+func (s *SnowflakeDatasource) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
 }

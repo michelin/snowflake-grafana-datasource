@@ -132,3 +132,18 @@ func TestAppendsTimeValueToFrameField(t *testing.T) {
 	InsertFrameField(frame, value, 0)
 	require.Equal(t, &value, frame.Fields[0].At(0))
 }
+
+func TestAppendsNilValueToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*time.Time{}))
+	InsertFrameField(frame, nil, 0)
+	require.Nil(t, frame.Fields[0].At(0))
+}
+
+func TestAppendsUnsupportedTypeToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*time.Time{}))
+	unsupportedValue := struct{}{}
+	InsertFrameField(frame, unsupportedValue, 0)
+	require.Nil(t, frame.Fields[0].At(0))
+}

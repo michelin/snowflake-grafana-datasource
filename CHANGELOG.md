@@ -4,9 +4,18 @@
 
 ### ⭐ Added
 - Add a query tag that includes relevant Grafana context information.
+- Add support of OAuth authentication.
 
 ### 🐞 Bug Fixes
 - Source query variables are replaced with hardcoded values in the query editor UI.
+
+### 🔨 Changed
+- Rewrite the datasource configuration UI (ease authentication selection).
+- Support non encoded private key in the datasource configuration.
+- Update deprecated APIs
+- Upgrade grafana-plugin-sdk-go to version v0.265.0.
+- Upgrade gosnowflake to version v1.13.0.
+- Upgrade go to version 1.23.
 
 ## 1.9.1
 

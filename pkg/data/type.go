@@ -10,7 +10,7 @@ type QueryResult struct {
 	Tables []Table
 }
 
-// DataTable structure containing columns and rows
+// Table structure containing columns and rows
 type Table struct {
 	Columns []*sql.ColumnType
 	Rows    [][]interface{}
@@ -52,4 +52,10 @@ type QueryTagGrafanaStruct struct {
 	OrgId        int64  `json:"orgId,omitempty"`
 	User         string `json:"user,omitempty"`
 	DatasourceId string `json:"datasourceId,omitempty"`
+}
+
+type AuthenticationSecret struct {
+	Password   string
+	PrivateKey string
+	Token      string
 }
