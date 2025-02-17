@@ -11,14 +11,14 @@ import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import path from 'path';
 import ReplaceInFileWebpackPlugin from 'replace-in-file-webpack-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
-import { SubresourceIntegrityPlugin } from 'webpack-subresource-integrity';
-import { type Configuration, BannerPlugin } from 'webpack';
+import {SubresourceIntegrityPlugin} from 'webpack-subresource-integrity';
+import {BannerPlugin, type Configuration} from 'webpack';
 import LiveReloadPlugin from 'webpack-livereload-plugin';
 import VirtualModulesPlugin from 'webpack-virtual-modules';
 
-import { BuildModeWebpackPlugin } from './BuildModeWebpackPlugin';
-import { DIST_DIR, SOURCE_DIR } from './constants';
-import { getCPConfigVersion, getEntries, getPackageJson, getPluginJson, hasReadme, isWSL } from './utils';
+import {BuildModeWebpackPlugin} from './BuildModeWebpackPlugin';
+import {DIST_DIR, SOURCE_DIR} from './constants';
+import {getCPConfigVersion, getEntries, getPackageJson, getPluginJson, hasReadme, isWSL} from './utils';
 
 const pluginJson = getPluginJson();
 const cpVersion = getCPConfigVersion();
@@ -176,6 +176,7 @@ const config = async (env): Promise<Configuration> => {
         keep: new RegExp(`(.*?_(amd64|arm(64)?)(.exe)?|go_plugin_build_manifest)`),
       },
       filename: '[name].js',
+      chunkFilename: env.production ? '[name].js?_cache=[contenthash]' : '[name].js',
       library: {
         type: 'amd',
       },
@@ -202,14 +203,14 @@ const config = async (env): Promise<Configuration> => {
           { from: 'plugin.json', to: '.' },
           { from: '../LICENSE.txt', to: '.' },
           { from: '../CHANGELOG.md', to: '.', force: true },
-          { from: '**/*.json', to: '.' }, // TODO<Add an error for checking the basic structure of the repo>
-          { from: '**/*.svg', to: '.', noErrorOnMissing: true }, // Optional
-          { from: '**/*.png', to: '.', noErrorOnMissing: true }, // Optional
-          { from: '**/*.html', to: '.', noErrorOnMissing: true }, // Optional
-          { from: 'img/**/*', to: '.', noErrorOnMissing: true }, // Optional
-          { from: 'libs/**/*', to: '.', noErrorOnMissing: true }, // Optional
-          { from: 'static/**/*', to: '.', noErrorOnMissing: true }, // Optional
-          { from: '**/query_help.md', to: '.', noErrorOnMissing: true }, // Optional
+          { from: '**/*.json', to: '.' },
+          { from: '**/*.svg', to: '.', noErrorOnMissing: true },
+          { from: '**/*.png', to: '.', noErrorOnMissing: true },
+          { from: '**/*.html', to: '.', noErrorOnMissing: true },
+          { from: 'img/**/*', to: '.', noErrorOnMissing: true },
+          { from: 'libs/**/*', to: '.', noErrorOnMissing: true },
+          { from: 'static/**/*', to: '.', noErrorOnMissing: true },
+          { from: '**/query_help.md', to: '.', noErrorOnMissing: true },
         ],
       }),
       // Replace certain template-variables in the README and plugin.json
