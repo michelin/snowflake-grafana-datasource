@@ -191,7 +191,19 @@ func handleTimeGroupMacro(args []string, configStruct *data.QueryConfigStruct, n
 			return "", err
 		}
 	}
-	return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP_NTZ(%s), %v, 'SECOND', 'START')", args[0], math.Max(1, interval.Seconds())), nil
+
+	duration := interval.Seconds()
+	timeUnit := "SECOND"
+
+	// If the interval can be translated to weeks exactly, then use WEEK as time slice unit as it allows users to configure which day they want the graphs to be based on 
+	// as opposed to having them always start on Thursdays due to 1970-01-01 being thursday.
+	const WEEK_IN_SECONDS = 7 * 24 * 3600
+	if interval.Seconds() > 1 && int64(interval.Seconds()) % WEEK_IN_SECONDS == 0 {
+		duration = interval.Seconds() / WEEK_IN_SECONDS
+		timeUnit = "WEEK"
+	}
+
+	return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP_NTZ(%s), %v, '%s', 'START')", args[0], math.Max(1, duration), timeUnit), nil
 }
 
 func handleTimeGroupAliasMacro(args []string, configStruct *data.QueryConfigStruct) (string, error) {
