@@ -59,6 +59,8 @@ func TestEvaluateMacro(t *testing.T) {
 		{name: "__timeGroup", args: []string{"col", "1d", "NULL"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: NullFill},
 		{name: "__timeGroup", args: []string{"col", "1d", "previous"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: PreviousFill},
 		{name: "__timeGroup", args: []string{"col", "1d", "12"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: ValueFill, fillValue: 12},
+		{name: "__timeGroup", args: []string{"col", "7d"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 1, 'WEEK', 'START')"},
+		{name: "__timeGroup", args: []string{"col", "2w"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 2, 'WEEK', 'START')"},
 		// __timeGroupAlias
 		{name: "__timeGroupAlias", args: []string{}, err: "macro __timeGroup needs time column and interval and optional fill value"},
 		{name: "__timeGroupAlias", args: []string{"col", "xxxx"}, err: "error parsing interval xxxx"},
