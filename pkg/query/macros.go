@@ -193,10 +193,10 @@ func handleTimeGroupMacro(args []string, configStruct *data.QueryConfigStruct, n
 	}
 
 	timeExpr := fmt.Sprintf("TO_TIMESTAMP_NTZ(%s)", args[0])
-    if len(args) > 3 {
-        timeExpr = fmt.Sprintf("TO_TIMESTAMP_NTZ(CONVERT_TIMEZONE(%s, %s))", args[3], args[0])
-    }
-
+	if len(args) > 3 {
+		timeExpr = fmt.Sprintf("TO_TIMESTAMP_NTZ(CONVERT_TIMEZONE(%s, %s))", args[3], args[0])
+	}
+	
 	duration := interval.Seconds()
 	timeUnit := "SECOND"
 
