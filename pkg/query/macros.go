@@ -185,13 +185,18 @@ func handleTimeGroupMacro(args []string, configStruct *data.QueryConfigStruct, n
 	if err != nil {
 		return "", fmt.Errorf("error parsing interval %v", args[1])
 	}
-	if len(args) == 3 {
+	if len(args) > 2 {
 		err := SetupFillmode(configStruct, args[2])
 		if err != nil {
 			return "", err
 		}
 	}
 
+	timeExpr := fmt.Sprintf("TO_TIMESTAMP_NTZ(%s)", args[0])
+	if len(args) > 3 {
+		timeExpr = fmt.Sprintf("TO_TIMESTAMP_NTZ(CONVERT_TIMEZONE(%s, %s))", args[3], args[0])
+	}
+	
 	duration := interval.Seconds()
 	timeUnit := "SECOND"
 
@@ -203,7 +208,7 @@ func handleTimeGroupMacro(args []string, configStruct *data.QueryConfigStruct, n
 		timeUnit = "WEEK"
 	}
 
-	return fmt.Sprintf("TIME_SLICE(TO_TIMESTAMP_NTZ(%s), %v, '%s', 'START')", args[0], math.Max(1, duration), timeUnit), nil
+	return fmt.Sprintf("TIME_SLICE(%s, %v, '%s', 'START')", timeExpr, math.Max(1, duration), timeUnit), nil
 }
 
 func handleTimeGroupAliasMacro(args []string, configStruct *data.QueryConfigStruct) (string, error) {
