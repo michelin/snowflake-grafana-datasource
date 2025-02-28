@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -24,9 +24,9 @@ func TestContainsIgnoreCase(t *testing.T) {
 	for i, tc := range tcs {
 		t.Run(fmt.Sprintf("testcase %d", i), func(t *testing.T) {
 			if tc.success {
-				require.True(t, equalsIgnoreCase(tc.array, tc.str))
+				require.True(t, EqualsIgnoreCase(tc.array, tc.str))
 			} else {
-				require.False(t, equalsIgnoreCase(tc.array, tc.str))
+				require.False(t, EqualsIgnoreCase(tc.array, tc.str))
 			}
 		})
 	}
@@ -70,7 +70,7 @@ func TestMax(t *testing.T) {
 
 func TestPreviousRowWithEmptyRows(t *testing.T) {
 	rows := [][]interface{}{}
-	result := previousRow(rows, 1)
+	result := PreviousRow(rows, 1)
 	require.Nil(t, result)
 }
 
@@ -79,7 +79,7 @@ func TestPreviousRowWithNonEmptyRowsAndIndexZero(t *testing.T) {
 		{"row1"},
 		{"row2"},
 	}
-	result := previousRow(rows, 0)
+	result := PreviousRow(rows, 0)
 	require.Equal(t, rows[0], result)
 }
 
@@ -89,7 +89,7 @@ func TestPreviousRowWithNonEmptyRowsAndIndexGreaterThanZero(t *testing.T) {
 		{"row2"},
 		{"row3"},
 	}
-	result := previousRow(rows, 2)
+	result := PreviousRow(rows, 2)
 	require.Equal(t, rows[1], result)
 }
 
@@ -97,7 +97,7 @@ func TestAppendsStringValueToFrameField(t *testing.T) {
 	frame := data.NewFrame("test")
 	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*string{}))
 	value := "testString"
-	insertFrameField(frame, value, 0)
+	InsertFrameField(frame, value, 0)
 	require.Equal(t, &value, frame.Fields[0].At(0))
 }
 
@@ -105,7 +105,7 @@ func TestAppendsFloat64ValueToFrameField(t *testing.T) {
 	frame := data.NewFrame("test")
 	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*float64{}))
 	value := float64(123.45)
-	insertFrameField(frame, value, 0)
+	InsertFrameField(frame, value, 0)
 	require.Equal(t, &value, frame.Fields[0].At(0))
 }
 
@@ -113,7 +113,7 @@ func TestAppendsInt64ValueToFrameField(t *testing.T) {
 	frame := data.NewFrame("test")
 	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*int64{}))
 	value := int64(123)
-	insertFrameField(frame, value, 0)
+	InsertFrameField(frame, value, 0)
 	require.Equal(t, &value, frame.Fields[0].At(0))
 }
 
@@ -121,7 +121,7 @@ func TestAppendsBoolValueToFrameField(t *testing.T) {
 	frame := data.NewFrame("test")
 	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*bool{}))
 	value := true
-	insertFrameField(frame, value, 0)
+	InsertFrameField(frame, value, 0)
 	require.Equal(t, &value, frame.Fields[0].At(0))
 }
 
@@ -129,6 +129,21 @@ func TestAppendsTimeValueToFrameField(t *testing.T) {
 	frame := data.NewFrame("test")
 	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*time.Time{}))
 	value := time.Now()
-	insertFrameField(frame, value, 0)
+	InsertFrameField(frame, value, 0)
 	require.Equal(t, &value, frame.Fields[0].At(0))
+}
+
+func TestAppendsNilValueToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*time.Time{}))
+	InsertFrameField(frame, nil, 0)
+	require.Nil(t, frame.Fields[0].At(0))
+}
+
+func TestAppendsUnsupportedTypeToFrameField(t *testing.T) {
+	frame := data.NewFrame("test")
+	frame.Fields = append(frame.Fields, data.NewField("field1", nil, []*time.Time{}))
+	unsupportedValue := struct{}{}
+	InsertFrameField(frame, unsupportedValue, 0)
+	require.Nil(t, frame.Fields[0].At(0))
 }

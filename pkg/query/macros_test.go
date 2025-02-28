@@ -1,11 +1,13 @@
-package main
+package query
 
 import (
 	"fmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/stretchr/testify/require"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	"testing"
 	"time"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEvaluateMacro(t *testing.T) {
@@ -15,14 +17,14 @@ func TestEvaluateMacro(t *testing.T) {
 		To:   time.Now().Add(time.Minute),
 	}
 
-	configStruct := queryConfigStruct{
+	configStruct := data.QueryConfigStruct{
 		TimeRange: timeRange,
 	}
 
 	tcs := []struct {
 		args      []string
 		name      string
-		config    queryConfigStruct
+		config    data.QueryConfigStruct
 		response  string
 		err       string
 		fillMode  string
@@ -57,6 +59,9 @@ func TestEvaluateMacro(t *testing.T) {
 		{name: "__timeGroup", args: []string{"col", "1d", "NULL"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: NullFill},
 		{name: "__timeGroup", args: []string{"col", "1d", "previous"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: PreviousFill},
 		{name: "__timeGroup", args: []string{"col", "1d", "12"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 86400, 'SECOND', 'START')", fillMode: ValueFill, fillValue: 12},
+		{name: "__timeGroup", args: []string{"col", "7d"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 1, 'WEEK', 'START')"},
+		{name: "__timeGroup", args: []string{"col", "2w"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(col), 2, 'WEEK', 'START')"},
+		{name: "__timeGroup", args: []string{"col", "1d", "NULL", "'America/Los_Angeles'"}, response: "TIME_SLICE(TO_TIMESTAMP_NTZ(CONVERT_TIMEZONE('America/Los_Angeles', col)), 86400, 'SECOND', 'START')", fillMode: NullFill},
 		// __timeGroupAlias
 		{name: "__timeGroupAlias", args: []string{}, err: "macro __timeGroup needs time column and interval and optional fill value"},
 		{name: "__timeGroupAlias", args: []string{"col", "xxxx"}, err: "error parsing interval xxxx"},
@@ -93,6 +98,14 @@ func TestEvaluateMacro(t *testing.T) {
 		{name: "__unixEpochGroupAlias", args: []string{"col", "1d", "previous"}, response: "floor(col/86400)*86400 AS time", fillMode: PreviousFill},
 		{name: "__unixEpochGroupAlias", args: []string{"col", "1d", "12"}, response: "floor(col/86400)*86400 AS time", fillMode: ValueFill, fillValue: 12},
 		{name: "__unixEpochGroupAlias", args: []string{"col", "1d", "test"}, err: "error parsing fill value test"},
+		// __timeRoundTo
+		{name: "__timeRoundTo", args: []string{"test"}, err: "macro __timeRoundTo first argument must be a integer"},
+		{name: "__timeRoundTo", args: []string{"-1"}, err: "macro __timeRoundTo first argument must be a positive Integer"},
+		{name: "__timeRoundTo", args: []string{"-1", ""}, err: "macro __timeRoundTo only 1 argument allowed"},
+		// __timeRoundFrom
+		{name: "__timeRoundFrom", args: []string{"test"}, err: "macro __timeRoundFrom first argument must be a integer"},
+		{name: "__timeRoundFrom", args: []string{"-1"}, err: "macro __timeRoundFrom first argument must be a positive Integer"},
+		{name: "__timeRoundFrom", args: []string{"-1", ""}, err: "macro __timeRoundFrom only 1 argument allowed"},
 		// default
 		{name: "xxxx", args: []string{"col", "1d", "test"}, err: "unknown macro \"xxxx\""},
 	}
@@ -119,13 +132,13 @@ func TestEvaluateMacro(t *testing.T) {
 func TestInterpolate(t *testing.T) {
 	tests := []struct {
 		name          string
-		configStruct  *queryConfigStruct
+		configStruct  *data.QueryConfigStruct
 		expectedSQL   string
 		expectedError string
 	}{
 		{
 			name: "valid macro",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeFilter(col)",
 				TimeRange: backend.TimeRange{
 					From: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -137,7 +150,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "missing time column argument",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__timeFilter()",
 			},
 			expectedSQL:   "",
@@ -145,7 +158,7 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "valid snowflake system macro",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT SYSTEM$TYPEOF('a')",
 			},
 			expectedSQL:   "SELECT SYSTEM$TYPEOF('a')",
@@ -153,11 +166,131 @@ func TestInterpolate(t *testing.T) {
 		},
 		{
 			name: "unknown macro",
-			configStruct: &queryConfigStruct{
+			configStruct: &data.QueryConfigStruct{
 				RawQuery: "SELECT * FROM table WHERE $__unknownMacro(col)",
 			},
 			expectedSQL:   "",
 			expectedError: "unknown macro \"__unknownMacro\"",
+		},
+		{
+			name: "check __timeRoundTo with default 15min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo()",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-02T00:15:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundFrom with default 15min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom()",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-01T00:00:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundTo with 5min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(5)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-02T00:10:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundFrom with 5min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(5)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-01T00:05:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundTo with 10min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(10)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-02T00:10:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundFrom with 10min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(10)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-01T00:00:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundTo with 30min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(30)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-02T00:30:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundFrom with 30min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(30)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 59, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-01T00:30:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundTo with 1440min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundTo(1440)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 7, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-03T00:00:00Z'",
+			expectedError: "",
+		},
+		{
+			name: "check __timeRoundFrom with 1440min",
+			configStruct: &data.QueryConfigStruct{
+				RawQuery: "SELECT * FROM table WHERE $__timeRoundFrom(1440)",
+				TimeRange: backend.TimeRange{
+					From: time.Date(2020, 1, 1, 0, 59, 0, 0, time.UTC),
+					To:   time.Date(2020, 1, 2, 0, 7, 0, 0, time.UTC),
+				},
+			},
+			expectedSQL:   "SELECT * FROM table WHERE '2020-01-01T00:00:00Z'",
+			expectedError: "",
 		},
 	}
 

@@ -1,11 +1,11 @@
 import defaults from 'lodash/defaults';
 
-import React, { PureComponent } from 'react';
-import { Select, TagsInput, InlineFormLabel, CodeEditor, Field, Button, RadioButtonGroup } from '@grafana/ui';
-import { QueryEditorProps, SelectableValue } from '@grafana/data';
-import { DataSource } from './datasource';
-import { defaultQuery, SnowflakeOptions, SnowflakeQuery } from './types';
-import { format } from 'sql-formatter'
+import React, {PureComponent} from 'react';
+import {Button, CodeEditor, Field, InlineFormLabel, RadioButtonGroup, Select, TagsInput} from '@grafana/ui';
+import {QueryEditorProps, SelectableValue} from '@grafana/data';
+import {DataSource} from './datasource';
+import {defaultQuery, SnowflakeOptions, SnowflakeQuery} from './types';
+import {format} from 'sql-formatter'
 
 type Props = QueryEditorProps<DataSource, SnowflakeQuery, SnowflakeOptions>;
 
@@ -14,11 +14,12 @@ export class QueryEditor extends PureComponent<Props> {
   onQueryTextChange = (newQuery: string) => {
     const { onChange, query } = this.props;
     onChange({ ...query, queryText: newQuery });
+    this.props.onRunQuery();
   };
 
   onFormat = () => {
     try {
-      let formatted = format(this.props.query.queryText || "", { 
+      let formatted = format(this.props.query.queryText ?? "", {
         language: 'snowflake', 
         denseOperators: false, 
         keywordCase: 'upper',
@@ -38,7 +39,7 @@ export class QueryEditor extends PureComponent<Props> {
     const { onChange, query } = this.props;
     onChange({
       ...query,
-      queryType: value.value || 'table',
+      queryType: value.value ?? 'table',
     });
 
     this.props.onRunQuery();
@@ -68,7 +69,7 @@ export class QueryEditor extends PureComponent<Props> {
     const {onChange, query} = this.props;
     onChange({
       ...query,
-      fillMode: value || this.optionsFillMode[0].value,
+      fillMode: value ?? this.optionsFillMode[0].value,
     });
     this.props.onRunQuery();
   };
@@ -77,12 +78,12 @@ export class QueryEditor extends PureComponent<Props> {
   render() {
     const query = defaults(this.props.query, defaultQuery);
     const { queryText, queryType, fillMode, timeColumns } = query;
-    const selectedOption = this.options.find((options) => options.value === queryType) || this.options;
-    const selectedFillMode = this.optionsFillMode.find((options) => options.value === fillMode)?.value || this.optionsFillMode[0].value;
+    const selectedOption = this.options.find((options) => options.value === queryType) ?? this.options;
+    const selectedFillMode = this.optionsFillMode.find((options) => options.value === fillMode)?.value ?? this.optionsFillMode[0].value;
 
     return (
       <div>
-        <div className="gf-form max-width-25" role="query-type-container">
+        <div className="gf-form max-width-25">
           <InlineFormLabel width={10}>Query Type</InlineFormLabel>
           <Select
             width={20}
@@ -96,14 +97,12 @@ export class QueryEditor extends PureComponent<Props> {
         <Field>
           <div>
             <CodeEditor
-              value={queryText || ''}
-              onBlur={this.props.onRunQuery}
-              onChange={this.onQueryTextChange}
+              value={queryText ?? ''}
+              onBlur={this.onQueryTextChange}
               language="sql"
               showLineNumbers={true}
               height={'200px'}
               showMiniMap={false}
-              onSave={this.props.onRunQuery}
             />
             <Button variant="secondary" icon="repeat" onClick={this.onFormat}>Format Query</Button>
           </div>

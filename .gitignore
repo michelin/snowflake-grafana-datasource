@@ -33,4 +33,4 @@ e2e-results/
 
 .DS_Store
 .bra.toml
-
+.eslintcache

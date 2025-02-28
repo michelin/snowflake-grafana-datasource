@@ -15,10 +15,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	sf "github.com/snowflakedb/gosnowflake"
 )
 
 const rowLimit = 1000000
@@ -64,13 +67,6 @@ var tim time.Time
 var float float64
 var str string
 var integer int64
-
-// Constant used to describe the time series fill mode if no value has been seen
-const (
-	NullFill     = "null"
-	PreviousFill = "previous"
-	ValueFill    = "value"
-)
 
 type queryModel struct {
 	QueryText   string   `json:"queryText"`
@@ -125,7 +121,7 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context) (result DataQueryRes
 		return result, nil
 	}
 
-	table := DataTable{
+	table := _data.Table{
 		Columns: columnTypes,
 		Rows:    make([][]interface{}, 0),
 	}
@@ -135,7 +131,7 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context) (result DataQueryRes
 		if rowCount > rowLimit {
 			return result, fmt.Errorf("query row limit exceeded, limit %d", rowLimit)
 		}
-		values, err := qc.transformQueryResult(columnTypes, rows)
+		values, err := transformQueryResult(*qc, columnTypes, rows)
 		if err != nil {
 			return result, err
 		}
@@ -152,7 +148,7 @@ func (qc *queryConfigStruct) fetchData(ctx context.Context) (result DataQueryRes
 	return result, nil
 }
 
-func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType, rows *sql.Rows) ([]interface{}, error) {
+func transformQueryResult(qc _data.QueryConfigStruct, columnTypes []*sql.ColumnType, rows *sql.Rows) ([]interface{}, error) {
 	values := make([]interface{}, len(columnTypes))
 	valuePtrs := make([]interface{}, len(columnTypes))
 
@@ -171,7 +167,7 @@ func (qc *queryConfigStruct) transformQueryResult(columnTypes []*sql.ColumnType,
 		log.DefaultLogger.Debug("Type", fmt.Sprintf("%T %v ", values[i], values[i]), columnTypes[i].DatabaseTypeName())
 
 		// Convert time columns when query mode is time series
-		if qc.isTimeSeriesType() && equalsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) && reflect.TypeOf(values[i]) == reflect.TypeOf(str) {
+		if qc.IsTimeSeriesType() && utils.EqualsIgnoreCase(qc.TimeColumns, columnTypes[i].Name()) && reflect.TypeOf(values[i]) == reflect.TypeOf(str) {
 			if v, err := strconv.ParseFloat(values[i].(string), 64); err == nil {
 				values[i] = time.Unix(int64(v), 0)
 			} else {
@@ -243,7 +239,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		panic("Query model property rawSql should not be empty at this point")
 	}
 
-	queryConfig := queryConfigStruct{
+	queryConfig := _data.QueryConfigStruct{
 		FinalQuery:    qm.QueryText,
 		RawQuery:      qm.QueryText,
 		TimeColumns:   qm.TimeColumns,
@@ -252,6 +248,8 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		Interval:      dataQuery.Interval,
 		TimeRange:     dataQuery.TimeRange,
 		MaxDataPoints: dataQuery.MaxDataPoints,
+		DashboardId:   request.GetHTTPHeader("X-Dashboard-Uid"),
+		PanelId:       request.GetHTTPHeader("X-Panel-Id"),
 		db:            instance.db,
 		config:        instance.config,
 		actQueryCount: &instance.actQueryCount,
@@ -268,7 +266,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 	}
 
 	// Apply macros
-	queryConfig.FinalQuery, err = Interpolate(&queryConfig)
+	queryConfig.FinalQuery, err = query.Interpolate(&queryConfig)
 	if err != nil {
 		errAppendDebug("interpolation failed", err, queryConfig.FinalQuery)
 		return
@@ -292,7 +290,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 				return
 			}
 			// Check time column
-			if queryConfig.isTimeSeriesType() && equalsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
+			if queryConfig.IsTimeSeriesType() && utils.EqualsIgnoreCase(queryConfig.TimeColumns, column.Name()) {
 				if strings.EqualFold(column.Name(), "Time") {
 					timeColumnIndex = i
 				}
@@ -329,17 +327,17 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 		for j, row := range table.Rows {
 			// Handle fill mode when the time column exist
 			if timeColumnIndex != -1 {
-				fillTimesSeries(queryConfig, intervalStart, row[Max(int64(timeColumnIndex), 0)].(time.Time).UnixNano()/1e6, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, j))
+				fillTimesSeries(queryConfig, intervalStart, row[utils.Max(int64(timeColumnIndex), 0)].(time.Time).UnixNano()/1e6, timeColumnIndex, frame, len(table.Columns), &count, utils.PreviousRow(table.Rows, j))
 			}
 			// without fill mode
 			for i, v := range row {
-				insertFrameField(frame, v, i)
+				utils.InsertFrameField(frame, v, i)
 			}
 			count++
 		}
-		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, previousRow(table.Rows, len(table.Rows)))
+		fillTimesSeries(queryConfig, intervalStart, intervalEnd, timeColumnIndex, frame, len(table.Columns), &count, utils.PreviousRow(table.Rows, len(table.Rows)))
 	}
-	if queryConfig.isTimeSeriesType() {
+	if queryConfig.IsTimeSeriesType() {
 		frame, err = td.longToWide(frame, queryConfig, dataResponse)
 		if err != nil {
 			errAppendDebug("db transformation error", err, queryConfig.FinalQuery)
@@ -357,10 +355,10 @@ func (td *SnowflakeDatasource) query(ctx context.Context, wg *sync.WaitGroup, ch
 	ch <- queryResult
 }
 
-func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryConfigStruct, dataResponse DataQueryResult) (*data.Frame, error) {
+func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig _data.QueryConfigStruct, dataResponse _data.QueryResult) (*data.Frame, error) {
 	tsSchema := frame.TimeSeriesSchema()
 	if tsSchema.Type == data.TimeSeriesTypeLong {
-		fillMode := &data.FillMissing{Mode: mapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
+		fillMode := &data.FillMissing{Mode: query.MapFillMode(queryConfig.FillMode), Value: queryConfig.FillValue}
 		if len(dataResponse.Tables) > 0 && len(dataResponse.Tables[0].Rows) > 0 {
 			var err error
 			frame, err = data.LongToWide(frame, fillMode)
@@ -380,23 +378,8 @@ func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig queryCo
 	return frame, nil
 }
 
-func mapFillMode(fillModeString string) data.FillMode {
-	var fillMode = data.FillModeNull
-	switch fillModeString {
-	case ValueFill:
-		fillMode = data.FillModeValue
-	case NullFill:
-		fillMode = data.FillModeNull
-	case PreviousFill:
-		fillMode = data.FillModePrevious
-	default:
-		// no-op
-	}
-	return fillMode
-}
-
-func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, intervalEnd int64, timeColumnIndex int, frame *data.Frame, columnSize int, count *int, previousRow []interface{}) {
-	if queryConfig.isTimeSeriesType() && queryConfig.FillMode != "" && timeColumnIndex != -1 {
+func fillTimesSeries(queryConfig _data.QueryConfigStruct, intervalStart int64, intervalEnd int64, timeColumnIndex int, frame *data.Frame, columnSize int, count *int, previousRow []interface{}) {
+	if queryConfig.IsTimeSeriesType() && queryConfig.FillMode != "" && timeColumnIndex != -1 {
 		for stepTime := intervalStart + queryConfig.Interval.Nanoseconds()/1e6*int64(*count); stepTime < intervalEnd; stepTime = stepTime + (queryConfig.Interval.Nanoseconds() / 1e6) {
 			for i := 0; i < columnSize; i++ {
 				if i == timeColumnIndex {
@@ -405,15 +388,15 @@ func fillTimesSeries(queryConfig queryConfigStruct, intervalStart int64, interva
 					continue
 				}
 				switch queryConfig.FillMode {
-				case ValueFill:
+				case query.ValueFill:
 					frame.Fields[i].Append(&queryConfig.FillValue)
-				case NullFill:
+				case query.NullFill:
 					frame.Fields[i].Append(nil)
-				case PreviousFill:
+				case query.PreviousFill:
 					if previousRow == nil {
-						insertFrameField(frame, nil, i)
+						utils.InsertFrameField(frame, nil, i)
 					} else {
-						insertFrameField(frame, previousRow[i], i)
+						utils.InsertFrameField(frame, previousRow[i], i)
 					}
 				default:
 				}

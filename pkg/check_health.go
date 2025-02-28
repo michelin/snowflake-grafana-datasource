@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
 	_ "github.com/snowflakedb/gosnowflake"
 )
 
@@ -26,10 +28,7 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 
 	row, err := db.QueryContext(ctx, "SELECT 1")
 	if err != nil {
-		return &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Validation query error : %s", err),
-		}, nil
+		return createHealthError(fmt.Sprintf("Validation query error : %s", err)), nil
 	}
 
 	defer row.Close()
@@ -40,37 +39,58 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 	}, nil
 }
 
-func createAndValidationConnectionString(req *backend.CheckHealthRequest) (string, *backend.CheckHealthResult) {
-	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
-
-	if password == "" && privateKey == "" {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Password or private key are required.",
-		}
+// createHealthError creates an error result
+func createHealthError(message string) *backend.CheckHealthResult {
+	return &backend.CheckHealthResult{
+		Status:  backend.HealthStatusError,
+		Message: message,
 	}
+}
+
+// validateAuthFields validates the authentication fields
+func validateAuthFields(password, privateKey string, oauth _oauth.Oauth) *backend.CheckHealthResult {
+	if password == "" && privateKey == "" && oauth.ClientSecret == "" {
+		return createHealthError("Password or private key or Oauth fields are required.")
+	}
+
+	if (password != "" && (privateKey != "" || oauth.ClientSecret != "")) || (privateKey != "" && oauth.ClientSecret != "") {
+		return createHealthError("Only one authentication method must be provided.")
+	}
+
+	if password == "" && privateKey == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "") {
+		return createHealthError("All OAuth fields are mandatory.")
+	}
+
+	return nil
+}
+
+// createAndValidationConnectionString creates a connection string and validates the configuration
+func createAndValidationConnectionString(req *backend.CheckHealthRequest) (string, *backend.CheckHealthResult) {
 
 	config, err := getConfig(req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: fmt.Sprintf("Error getting config: %s", err),
-		}
+		return "", createHealthError(fmt.Sprintf("Error getting config: %s", err))
+	}
+
+	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+
+	oauth := _oauth.Oauth{
+		ClientId:      config.ClientId,
+		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		TokenEndpoint: config.TokenEndpoint,
+	}
+
+	if validationResult := validateAuthFields(password, privateKey, oauth); validationResult != nil {
+		return "", validationResult
 	}
 
 	if config.Account == "" {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Account not provided",
-		}
+		return "", createHealthError("Account not provided")
 	}
 
-	if config.Username == "" {
-		return "", &backend.CheckHealthResult{
-			Status:  backend.HealthStatusError,
-			Message: "Username not provided",
-		}
+	if config.Username == "" && (password != "" || privateKey != "") {
+		return "", createHealthError("Username not provided")
 	}
 
 	if len(config.ExtraConfig) > 0 {
@@ -79,6 +99,13 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		config.ExtraConfig = "validateDefaultParameters=true"
 	}
 
-	connectionString := getConnectionString(&config, password, privateKey)
+	token, err := _oauth.GetToken(oauth, true)
+	if err != nil {
+		return "", createHealthError(fmt.Sprintf("Error getting token: %s", err))
+	}
+
+	authenticationSecret := data.AuthenticationSecret{Password: password, PrivateKey: privateKey, Token: token}
+
+	connectionString := getConnectionString(&config, authenticationSecret)
 	return connectionString, nil
 }

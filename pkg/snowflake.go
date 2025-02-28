@@ -9,12 +9,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 
 	"net/url"
+
+	sf "github.com/snowflakedb/gosnowflake"
 )
 
 type DBDataResponse struct {
@@ -22,21 +26,9 @@ type DBDataResponse struct {
 	refID        string
 }
 
-// newDatasource returns datasource.ServeOpts.
-func newDatasource() datasource.ServeOpts {
-	// creates a instance manager for your plugin. The function passed
-	// into `NewInstanceManger` is called when the instance is created
-	// for the first time or when a datasource configuration changed.
-	im := datasource.NewInstanceManager(newDataSourceInstance)
-	ds := &SnowflakeDatasource{
-		im: im,
-	}
-
-	return datasource.ServeOpts{
-		QueryDataHandler:   ds,
-		CheckHealthHandler: ds,
-	}
-}
+var (
+	_ backend.QueryDataHandler = (*SnowflakeDatasource)(nil)
+)
 
 type SnowflakeDatasource struct {
 	// The instance manager can help with lifecycle management
@@ -79,19 +71,24 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 }
 
 type pluginConfig struct {
-	Account               string `json:"account"`
-	Username              string `json:"username"`
-	Role                  string `json:"role"`
-	Warehouse             string `json:"warehouse"`
-	Database              string `json:"database"`
-	Schema                string `json:"schema"`
-	ExtraConfig           string `json:"extraConfig"`
-	MaxOpenConnections    string `json:"maxOpenConnections"`
-	IntMaxOpenConnections int64
-	MaxQueuedQueries      string `json:"maxQueuedQueries"`
-	IntMaxQueuedQueries   int64
-	ConnectionLifetime    string `json:"connectionLifetime"`
-	IntConnectionLifetime int64
+	Account                  string `json:"account"`
+	Username                 string `json:"username"`
+	Role                     string `json:"role"`
+	Warehouse                string `json:"warehouse"`
+	Database                 string `json:"database"`
+	Schema                   string `json:"schema"`
+	ExtraConfig              string `json:"extraConfig"`
+	MaxChunkDownloadWorkers  string `json:"maxChunkDownloadWorkers"`
+	CustomJSONDecoderEnabled bool   `json:"customJSONDecoderEnabled"`
+	ClientId                 string `json:"clientId"`
+	TokenEndpoint            string `json:"tokenEndpoint"`
+	RedirectUrl              string `json:"redirectUrl"`
+	MaxOpenConnections       string `json:"maxOpenConnections"`
+	IntMaxOpenConnections    int64
+	MaxQueuedQueries         string `json:"maxQueuedQueries"`
+	IntMaxQueuedQueries      int64
+	ConnectionLifetime       string `json:"connectionLifetime"`
+	IntConnectionLifetime    int64
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {
@@ -127,23 +124,34 @@ func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, erro
 	return config, nil
 }
 
-func getConnectionString(config *pluginConfig, password string, privateKey string) string {
+func getConnectionString(config *pluginConfig, authenticationSecret data.AuthenticationSecret) string {
 	params := url.Values{}
 	params.Add("role", config.Role)
 	params.Add("warehouse", config.Warehouse)
 	params.Add("database", config.Database)
 	params.Add("schema", config.Schema)
 
-	var userPass = ""
-	if len(privateKey) != 0 {
-		params.Add("authenticator", "SNOWFLAKE_JWT")
-		params.Add("privateKey", privateKey)
-		userPass = url.User(config.Username).String()
-	} else {
-		userPass = url.UserPassword(config.Username, password).String()
+	if config.MaxChunkDownloadWorkers != "" {
+		n0, err := strconv.Atoi(config.MaxChunkDownloadWorkers)
+		if err != nil {
+			log.DefaultLogger.Error("invalid value for MaxChunkDownloadWorkers: %v", config.MaxChunkDownloadWorkers)
+		}
+		sf.MaxChunkDownloadWorkers = n0
 	}
+	sf.CustomJSONDecoderEnabled = config.CustomJSONDecoderEnabled
 
-	return fmt.Sprintf("%s@%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
+	var userPass = ""
+	if len(authenticationSecret.PrivateKey) != 0 {
+		params.Add("authenticator", "SNOWFLAKE_JWT")
+		params.Add("privateKey", authenticationSecret.PrivateKey)
+		userPass = url.QueryEscape(config.Username) + "@"
+	} else if len(authenticationSecret.Token) != 0 {
+		params.Add("authenticator", "oauth")
+		params.Add("token", authenticationSecret.Token)
+	} else {
+		userPass = url.QueryEscape(config.Username) + ":" + url.QueryEscape(authenticationSecret.Password) + "@"
+	}
+	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }
 
 type instanceSettings struct {
@@ -155,8 +163,24 @@ type instanceSettings struct {
 func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 
 	log.DefaultLogger.Info("Creating instance")
-	password := setting.DecryptedSecureJSONData["password"]
-	privateKey := setting.DecryptedSecureJSONData["privateKey"]
+	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
+	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	oauth := _oauth.Oauth{
+		ClientId:      config.ClientId,
+		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		TokenEndpoint: config.TokenEndpoint,
+	}
+
+	token, err := _oauth.GetToken(oauth, false)
+	if err != nil {
+		return response, err
+	}
+
+	authenticationSecret := data.AuthenticationSecret{
+		Password:   password,
+		PrivateKey: privateKey,
+		Token:      token,
+	}
 
 	config, err := getConfig(&setting)
 	if err != nil {
@@ -176,7 +200,7 @@ func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstan
 	return &instanceSettings{db: db, config: &config}, nil
 }
 
-func (s *instanceSettings) Dispose() {
+func (s *SnowflakeDatasource) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
 	if s.db != nil {
 		if err := s.db.Close(); err != nil {
