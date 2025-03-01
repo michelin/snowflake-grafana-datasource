@@ -295,7 +295,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
     const { authMethod } = this.state;
 
     return (
-      <FieldSet>
+      <div className="gf-form-group">
         <h3 className="page-heading">Connection</h3>
 
         <InlineField label="Account name"
@@ -451,44 +451,35 @@ export class ConfigEditor extends PureComponent<Props, State> {
           </InlineField>
         <br />
         <h3 className="page-heading">Connection Pool configuration</h3>
-        <InlineField
-          labelWidth={30}
-          label="max. open Connections"
-          tooltip="How many connections will be opend from the datasource to snowflake (default: 100)" >
+        <InlineField label="max. open Connections"
+                     tooltip="How many connections will be opend from the datasource to snowflake (default: 100)"
+                     labelWidth={LABEL_WIDTH}>
           <Input
-            type="number"
-            className="width-20"
-            onChange={this.onMaxOpenConnectionsChange}
-            value={jsonData.maxOpenConnections}
-            placeholder="100"
+              width={INPUT_WIDTH}
+              onChange={this.onMaxOpenConnectionsChange}
+              value={jsonData.maxOpenConnections}
+              placeholder="100"
           />
         </InlineField>
-        <InlineField
-          labelWidth={30}
-          label="max. queued Queries"
-          tooltip='How many queries will be put into the query queue. This should be higher as "max. open Connections" when more queries as set are waiting to be executed a "too many open queries" error will be thrown. (default: 400 | 0 = no limit)' >
+        <InlineField label="max. queued Queries"
+                     tooltip='How many queries will be put into the query queue. This should be higher as "max. open Connections" when more queries as set are waiting to be executed a "too many open queries" error will be thrown. (default: 400 | 0 = no limit)'
+                     labelWidth={LABEL_WIDTH}>
           <Input
-            type="number"
-            className="width-20"
-            onChange={this.onMaxQueuedQueriesChange}
-            value={jsonData.maxQueuedQueries}
-            placeholder="400"
+              width={INPUT_WIDTH}
+              onChange={this.onMaxQueuedQueriesChange}
+              value={jsonData.maxQueuedQueries}
+              placeholder="400"
           />
         </InlineField>
-        <InlineField
-          labelWidth={30}
-          label="Connection lifetime [min]"
-          tooltip="How long open connections are hold to be reused in minutes. (default=60 | 0=never close)" >
-          
+        <InlineField label="Connection lifetime [min]"
+                     tooltip="How long open connections are hold to be reused in minutes. (default=60 | 0=never close)"
+                     labelWidth={LABEL_WIDTH}>
           <Input
-            type="number"
-            className="width-20"
-            onChange={this.onConnectionLifetimeChange}
-            value={jsonData.connectionLifetime}
-            placeholder="60"
+              width={INPUT_WIDTH}
+              onChange={this.onConnectionLifetimeChange}
+              value={jsonData.connectionLifetime}
+              placeholder="60"
           />
-        </InlineField>
-      
         </InlineField>
         <br/>
         <ControlledCollapse label="Experimental">

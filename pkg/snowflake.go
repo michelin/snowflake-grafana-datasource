@@ -9,14 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
-	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
+	"net/url"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-
-	"net/url"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
 
 	sf "github.com/snowflakedb/gosnowflake"
 )
@@ -55,7 +54,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 	// Execute each query in a goroutine and wait for them to finish afterwards
 	for _, query := range req.Queries {
 		wg.Add(1)
-		go td.query(ctx, &wg, ch, instance, query)
+		go td.query(ctx, &wg, ch, req, instance, query)
 	}
 
 	wg.Wait()
@@ -160,20 +159,21 @@ type instanceSettings struct {
 	actQueryCount queryCounter
 }
 
-func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func NewDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 
 	log.DefaultLogger.Info("Creating instance")
-	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
-	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	config, err := getConfig(&setting)
+	password := setting.DecryptedSecureJSONData["password"]
+	privateKey := setting.DecryptedSecureJSONData["privateKey"]
 	oauth := _oauth.Oauth{
 		ClientId:      config.ClientId,
-		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
+		ClientSecret:  setting.DecryptedSecureJSONData["clientSecret"],
 		TokenEndpoint: config.TokenEndpoint,
 	}
 
 	token, err := _oauth.GetToken(oauth, false)
 	if err != nil {
-		return response, err
+		return nil, err
 	}
 
 	authenticationSecret := data.AuthenticationSecret{
@@ -182,13 +182,12 @@ func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstan
 		Token:      token,
 	}
 
-	config, err := getConfig(&setting)
 	if err != nil {
 		log.DefaultLogger.Error("Could not get config for plugin", "err", err)
 		return nil, err
 	}
 
-	connectionString := getConnectionString(&config, password, privateKey)
+	connectionString := getConnectionString(&config, authenticationSecret)
 	db, err := sql.Open("snowflake", connectionString)
 	if err != nil {
 		return nil, err
@@ -199,8 +198,7 @@ func newDataSourceInstance(ctx context.Context, setting backend.DataSourceInstan
 	db.SetConnMaxLifetime(time.Duration(int(config.IntConnectionLifetime)) * time.Minute)
 	return &instanceSettings{db: db, config: &config}, nil
 }
-
-func (s *SnowflakeDatasource) Dispose() {
+func (s *instanceSettings) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
 	if s.db != nil {
 		if err := s.db.Close(); err != nil {

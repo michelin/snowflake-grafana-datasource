@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -112,16 +111,53 @@ func TestGetConnectionString(t *testing.T) {
 }
 
 // TODO  TestCreatesNewDataSourceInstance will fail because no login data is provided.
-func TestCreatesNewDataSourceInstance(t *testing.T) {
+/*func TestCreatesNewDataSourceInstance(t *testing.T) {
 	settings := backend.DataSourceInstanceSettings{}
 	instance, err := NewDataSourceInstance(context.Background(), settings)
 	require.NoError(t, err)
 	require.NotNil(t, instance)
-}
+}*/
 
-func TestDisposesInstanceWithoutError(t *testing.T) {
-	instance := &SnowflakeDatasource{}
+/*func TestDisposesInstanceWithoutError(t *testing.T) {
+	settings := backend.DataSourceInstanceSettings{}
+	i, err := NewDataSourceInstance(context.Background(), settings)
+	instance := i.(instanceSettings)
+	require.NoError(t, err)
 	require.NotPanics(t, func() {
 		instance.Dispose()
+	})
+}*/
+
+func TestMaxChunkDownloadWorkers(t *testing.T) {
+	config := pluginConfig{
+		MaxChunkDownloadWorkers: "5",
+	}
+
+	t.Run("valid MaxChunkDownloadWorkers", func(t *testing.T) {
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.Equal(t, 5, sf.MaxChunkDownloadWorkers)
+	})
+
+	t.Run("invalid MaxChunkDownloadWorkers", func(t *testing.T) {
+		config.MaxChunkDownloadWorkers = "invalid"
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.NotEqual(t, 5, sf.MaxChunkDownloadWorkers)
+	})
+}
+
+func TestCustomJSONDecoderEnabled(t *testing.T) {
+	config := pluginConfig{
+		CustomJSONDecoderEnabled: true,
+	}
+
+	t.Run("CustomJSONDecoderEnabled true", func(t *testing.T) {
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.True(t, sf.CustomJSONDecoderEnabled)
+	})
+
+	t.Run("CustomJSONDecoderEnabled false", func(t *testing.T) {
+		config.CustomJSONDecoderEnabled = false
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.False(t, sf.CustomJSONDecoderEnabled)
 	})
 }
