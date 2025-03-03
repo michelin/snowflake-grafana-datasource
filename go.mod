@@ -9,7 +9,7 @@ require (
 	github.com/grafana/grafana-plugin-sdk-go v0.266.0
 	github.com/snowflakedb/gosnowflake v1.13.0
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/oauth2 v0.26.0
+	golang.org/x/oauth2 v0.27.0
 )
 
 require (
