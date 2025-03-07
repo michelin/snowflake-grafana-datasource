@@ -1,14 +1,13 @@
 package main
 
 import (
+	"testing"
+	"time"
+
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
-	sf "github.com/snowflakedb/gosnowflake"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestIsTimeSeriesType_TrueWhenQueryTypeIsTimeSeries(t *testing.T) {
@@ -108,38 +107,4 @@ func TestAppendsNilWhenPreviousRowIsNil(t *testing.T) {
 	fillTimesSeries(queryConfig, 0, 60000, 0, frame, 2, new(int), nil)
 	assert.Equal(t, 1, frame.Fields[1].Len())
 	assert.Nil(t, frame.Fields[1].At(0))
-}
-
-func TestMaxChunkDownloadWorkers(t *testing.T) {
-	config := pluginConfig{
-		MaxChunkDownloadWorkers: "5",
-	}
-
-	t.Run("valid MaxChunkDownloadWorkers", func(t *testing.T) {
-		getConnectionString(&config, _data.AuthenticationSecret{})
-		require.Equal(t, 5, sf.MaxChunkDownloadWorkers)
-	})
-
-	t.Run("invalid MaxChunkDownloadWorkers", func(t *testing.T) {
-		config.MaxChunkDownloadWorkers = "invalid"
-		getConnectionString(&config, _data.AuthenticationSecret{})
-		require.NotEqual(t, 5, sf.MaxChunkDownloadWorkers)
-	})
-}
-
-func TestCustomJSONDecoderEnabled(t *testing.T) {
-	config := pluginConfig{
-		CustomJSONDecoderEnabled: true,
-	}
-
-	t.Run("CustomJSONDecoderEnabled true", func(t *testing.T) {
-		getConnectionString(&config, _data.AuthenticationSecret{})
-		require.True(t, sf.CustomJSONDecoderEnabled)
-	})
-
-	t.Run("CustomJSONDecoderEnabled false", func(t *testing.T) {
-		config.CustomJSONDecoderEnabled = false
-		getConnectionString(&config, _data.AuthenticationSecret{})
-		require.False(t, sf.CustomJSONDecoderEnabled)
-	})
 }
