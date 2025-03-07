@@ -1,9 +1,13 @@
 # Changelog
 
-## 2.0.0 (not released yet)
+## 2.1.0 (not released yet)
+
+## 2.0.0
 
 ### ⭐ Added
 - Add a query tag that includes relevant Grafana context information.
+- Add an option to specify timezone in timeGroup macro
+- Improve weekly group handling in timeGroup macro
 - Add support of OAuth authentication.
 
 ### 🐞 Bug Fixes
@@ -17,6 +21,10 @@
 - Upgrade gosnowflake to version v1.13.0.
 - Upgrade go to version 1.23.
 - Upgrade js dependencies.
+- 
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@ZygimantasKoncius](https://github.com/ZygimantasKoncius)
 
 ## 1.9.1
 
