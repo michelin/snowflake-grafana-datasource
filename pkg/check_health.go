@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
-	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	_ "github.com/snowflakedb/gosnowflake"
 )
 
@@ -16,22 +15,18 @@ import (
 // datasource configuration page which allows users to verify that
 // a datasource is working as expected.
 func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-
-	connectionString, result := createAndValidationConnectionString(req)
+	_, result := createAndValidationConnectionString(req)
 	if result != nil {
 		return result, nil
 	}
-	// Use the existing db field instead of opening a new connection
-	if td.db == nil || td.db.Ping() != nil {
-		var err error
-		td.db, err = sql.Open("snowflake", connectionString)
-		if err != nil {
-			return createHealthError(fmt.Sprintf("Connection issue : %s", err)), nil
-		}
+	i, err := td.im.Get(ctx, req.PluginContext)
+	if err != nil {
+		return nil, err
 	}
-	defer td.db.Close()
+	instance := i.(*instanceSettings)
+	db := instance.db
 
-	row, err := td.db.QueryContext(utils.AddQueryTagInfos(ctx, &data.QueryConfigStruct{}), "SELECT 1")
+	row, err := db.QueryContext(ctx, "SELECT 1")
 	if err != nil {
 		return createHealthError(fmt.Sprintf("Validation query error : %s", err)), nil
 	}
