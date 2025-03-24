@@ -4,12 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/stretchr/testify/require"
+	"testing"
+
 	"net/http"
 	"net/http/httptest"
-	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckHealthWithValidConnection(t *testing.T) {
@@ -18,7 +21,6 @@ func TestCheckHealthWithValidConnection(t *testing.T) {
 	defer db.Close()
 
 	mock.ExpectQuery("SELECT 1").WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
-
 	req := &backend.CheckHealthRequest{
 		PluginContext: backend.PluginContext{
 			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
@@ -28,8 +30,10 @@ func TestCheckHealthWithValidConnection(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	td := &SnowflakeDatasource{db: db}
-	result, err := td.CheckHealth(ctx, req)
+
+	service := GetMockService(db)
+	service.im.Get(ctx, backend.PluginContext{})
+	result, err := service.CheckHealth(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, backend.HealthStatusOk, result.Status)
 	require.Equal(t, "Data source is working", result.Message)
@@ -41,7 +45,6 @@ func TestCheckHealthWithInvalidConnection(t *testing.T) {
 	defer db.Close()
 
 	mock.ExpectQuery("SELECT 1").WillReturnError(sql.ErrConnDone)
-
 	req := &backend.CheckHealthRequest{
 		PluginContext: backend.PluginContext{
 			DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
@@ -51,8 +54,9 @@ func TestCheckHealthWithInvalidConnection(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	td := &SnowflakeDatasource{db: db}
-	result, err := td.CheckHealth(ctx, req)
+	service := GetMockService(db)
+	service.im.Get(ctx, backend.PluginContext{})
+	result, err := service.CheckHealth(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, backend.HealthStatusError, result.Status)
 	require.Contains(t, result.Message, "Validation query error")
@@ -315,4 +319,23 @@ func TestErrorResultWithEmptyMessage(t *testing.T) {
 	result := createHealthError("")
 	require.Equal(t, backend.HealthStatusError, result.Status)
 	require.Equal(t, "", result.Message)
+}
+
+type FakeInstanceManager struct {
+	db *sql.DB
+}
+
+func (fakeInstanceManager *FakeInstanceManager) Get(ctx context.Context, setting backend.PluginContext) (instancemgmt.Instance, error) {
+	config := pluginConfig{} ///getConfig(&setting)
+	return &instanceSettings{db: fakeInstanceManager.db, config: &config}, nil
+}
+
+func (*FakeInstanceManager) Do(_ context.Context, _ backend.PluginContext, _ instancemgmt.InstanceCallbackFunc) error {
+	return nil
+}
+
+func GetMockService(db *sql.DB) *SnowflakeDatasource {
+	return &SnowflakeDatasource{
+		im: &FakeInstanceManager{db: db},
+	}
 }

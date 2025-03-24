@@ -11,7 +11,7 @@ import {
 import {DataSourcePluginOptionsEditorProps} from '@grafana/data';
 import {SnowflakeOptions, SnowflakeSecureOptions} from './types';
 
-interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> {}
+interface Props extends DataSourcePluginOptionsEditorProps<SnowflakeOptions> { }
 
 interface State {
   authMethod: string;
@@ -263,6 +263,31 @@ export class ConfigEditor extends PureComponent<Props, State> {
     });
   };
 
+  onMaxOpenConnectionsChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxOpenConnections: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onMaxQueuedQueriesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      maxQueuedQueries: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+  onConnectionLifetimeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const jsonData = {
+      ...options.jsonData,
+      conectionLifetime: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
   render() {
     const { options } = this.props;
     const { jsonData, secureJsonFields } = options;
@@ -422,6 +447,38 @@ export class ConfigEditor extends PureComponent<Props, State> {
               onChange={this.onExtraOptionChange}
               value={jsonData.extraConfig ?? ''}
               placeholder="TIMESTAMP_OUTPUT_FORMAT=MM-DD-YYYY&..."
+          />
+          </InlineField>
+        <br />
+        <h3 className="page-heading">Connection Pool configuration</h3>
+        <InlineField label="max. open Connections"
+                     tooltip="How many connections will be opend from the datasource to snowflake (default: 100)"
+                     labelWidth={LABEL_WIDTH}>
+          <Input
+              width={INPUT_WIDTH}
+              onChange={this.onMaxOpenConnectionsChange}
+              value={jsonData.maxOpenConnections}
+              placeholder="100"
+          />
+        </InlineField>
+        <InlineField label="max. queued Queries"
+                     tooltip='How many queries will be put into the query queue. This should be higher as "max. open Connections" when more queries as set are waiting to be executed a "too many open queries" error will be thrown. (default: 400 | 0 = no limit)'
+                     labelWidth={LABEL_WIDTH}>
+          <Input
+              width={INPUT_WIDTH}
+              onChange={this.onMaxQueuedQueriesChange}
+              value={jsonData.maxQueuedQueries}
+              placeholder="400"
+          />
+        </InlineField>
+        <InlineField label="Connection lifetime [min]"
+                     tooltip="How long open connections are hold to be reused in minutes. (default=60 | 0=never close)"
+                     labelWidth={LABEL_WIDTH}>
+          <Input
+              width={INPUT_WIDTH}
+              onChange={this.onConnectionLifetimeChange}
+              value={jsonData.connectionLifetime}
+              placeholder="60"
           />
         </InlineField>
         <br/>

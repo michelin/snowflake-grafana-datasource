@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"testing"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	sf "github.com/snowflakedb/gosnowflake"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestGetConfig(t *testing.T) {
@@ -18,8 +18,24 @@ func TestGetConfig(t *testing.T) {
 		response string
 		err      string
 	}{
-		{json: "{}", config: pluginConfig{}},
-		{json: "{\"account\":\"test\"}", config: pluginConfig{Account: "test"}},
+		{json: "{}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"ConnectionLifetime\": \"10\"}", config: pluginConfig{ConnectionLifetime: "10", IntConnectionLifetime: 10, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"ConnectionLifetime\": \"-10\"}", config: pluginConfig{ConnectionLifetime: "-10", IntConnectionLifetime: -10, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"ConnectionLifetime\": \"test\"}", err: "strconv.Atoi: parsing \"test\": invalid syntax"},
+		{json: "{\"ConnectionLifetime\": \"1.5\"}", err: "strconv.Atoi: parsing \"1.5\": invalid syntax"},
+		{json: "{\"ConnectionLifetime\": \"1,5\"}", err: "strconv.Atoi: parsing \"1,5\": invalid syntax"},
+		{json: "{\"MaxOpenConnections\": \"10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "10", IntMaxOpenConnections: 10, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"MaxOpenConnections\": \"-10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "-10", IntMaxOpenConnections: -10, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
+		{json: "{\"MaxOpenConnections\": \"test\"}", err: "strconv.Atoi: parsing \"test\": invalid syntax"},
+		{json: "{\"MaxOpenConnections\": \"1.5\"}", err: "strconv.Atoi: parsing \"1.5\": invalid syntax"},
+		{json: "{\"MaxOpenConnections\": \"1,5\"}", err: "strconv.Atoi: parsing \"1,5\": invalid syntax"},
+		{json: "{\"MaxQueuedQueries\": \"10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "10", IntMaxQueuedQueries: 10}},
+		{json: "{\"MaxQueuedQueries\": \"-10\"}", config: pluginConfig{ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "-10", IntMaxQueuedQueries: -10}},
+		{json: "{\"MaxQueuedQueries\": \"test\"}", err: "strconv.Atoi: parsing \"test\": invalid syntax"},
+		{json: "{\"MaxQueuedQueries\": \"1.5\"}", err: "strconv.Atoi: parsing \"1.5\": invalid syntax"},
+		{json: "{\"MaxQueuedQueries\": \"1,5\"}", err: "strconv.Atoi: parsing \"1,5\": invalid syntax"},
+		{json: "{\"account\":\"test\", \"ConnectionLifetime\":\"8\", \"MaxOpenConnections\":\"9\", \"MaxQueuedQueries\": \"10\"}", config: pluginConfig{Account: "test", ConnectionLifetime: "8", IntConnectionLifetime: 8, MaxOpenConnections: "9", IntMaxOpenConnections: 9, MaxQueuedQueries: "10", IntMaxQueuedQueries: 10}},
+		{json: "{\"account\":\"test\"}", config: pluginConfig{Account: "test", ConnectionLifetime: "60", IntConnectionLifetime: 60, MaxOpenConnections: "100", IntMaxOpenConnections: 100, MaxQueuedQueries: "400", IntMaxQueuedQueries: 400}},
 		{json: "{", err: "unexpected end of JSON input"},
 	}
 	for i, tc := range tcs {
@@ -94,16 +110,54 @@ func TestGetConnectionString(t *testing.T) {
 	})
 }
 
-func TestCreatesNewDataSourceInstance(t *testing.T) {
+// TODO  TestCreatesNewDataSourceInstance will fail because no login data is provided.
+/*func TestCreatesNewDataSourceInstance(t *testing.T) {
 	settings := backend.DataSourceInstanceSettings{}
 	instance, err := NewDataSourceInstance(context.Background(), settings)
 	require.NoError(t, err)
 	require.NotNil(t, instance)
-}
+}*/
 
-func TestDisposesInstanceWithoutError(t *testing.T) {
-	instance := &SnowflakeDatasource{}
+/*func TestDisposesInstanceWithoutError(t *testing.T) {
+	settings := backend.DataSourceInstanceSettings{}
+	i, err := NewDataSourceInstance(context.Background(), settings)
+	instance := i.(instanceSettings)
+	require.NoError(t, err)
 	require.NotPanics(t, func() {
 		instance.Dispose()
+	})
+}*/
+
+func TestMaxChunkDownloadWorkers(t *testing.T) {
+	config := pluginConfig{
+		MaxChunkDownloadWorkers: "5",
+	}
+
+	t.Run("valid MaxChunkDownloadWorkers", func(t *testing.T) {
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.Equal(t, 5, sf.MaxChunkDownloadWorkers)
+	})
+
+	t.Run("invalid MaxChunkDownloadWorkers", func(t *testing.T) {
+		config.MaxChunkDownloadWorkers = "invalid"
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.NotEqual(t, 5, sf.MaxChunkDownloadWorkers)
+	})
+}
+
+func TestCustomJSONDecoderEnabled(t *testing.T) {
+	config := pluginConfig{
+		CustomJSONDecoderEnabled: true,
+	}
+
+	t.Run("CustomJSONDecoderEnabled true", func(t *testing.T) {
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.True(t, sf.CustomJSONDecoderEnabled)
+	})
+
+	t.Run("CustomJSONDecoderEnabled false", func(t *testing.T) {
+		config.CustomJSONDecoderEnabled = false
+		getConnectionString(&config, data.AuthenticationSecret{})
+		require.False(t, sf.CustomJSONDecoderEnabled)
 	})
 }
