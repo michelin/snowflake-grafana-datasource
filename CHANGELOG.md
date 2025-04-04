@@ -1,9 +1,16 @@
 # Changelog
 
-## 2.1.0 (not released yet)
+## 2.2.0 (not released yet)
+
+## 2.1.0
+⚠️ Renaming the timeseries column may introduce a breaking change when using overrides.
+
+### 🐞 Bug Fixes
+- Removed duplicate label in time series column names.
 
 ### 🔨 Changed
 - Upgrade gosnowflake to version v1.13.2.
+- Upgrade grafana-plugin-sdk-go to version v0.274.0.
 - Upgrade js dependencies.
 
 ## 2.0.0
