@@ -287,13 +287,6 @@ func (td *SnowflakeDatasource) longToWide(frame *data.Frame, queryConfig _data.Q
 				return nil, err
 			}
 		}
-		for _, field := range frame.Fields {
-			if field.Labels != nil {
-				for _, val := range field.Labels {
-					field.Name += "_" + string(val)
-				}
-			}
-		}
 	}
 	return frame, nil
 }
