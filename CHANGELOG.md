@@ -2,6 +2,10 @@
 
 ## 2.1.0 (not released yet)
 
+### 🔨 Changed
+- Upgrade gosnowflake to version v1.13.2.
+- Upgrade js dependencies.
+
 ## 2.0.0
 
 ### ⭐ Added

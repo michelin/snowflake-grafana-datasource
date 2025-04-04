@@ -34,3 +34,5 @@ e2e-results/
 .DS_Store
 .bra.toml
 .eslintcache
+/grafana-pyroscope-app/*
+/grafana-lokiexplore-app/*
