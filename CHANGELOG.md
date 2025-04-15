@@ -2,6 +2,9 @@
 
 ## 2.2.0 (not released yet)
 
+### 🔨 Changed
+- Upgrade go to version 1.24
+
 ## 2.1.0
 ⚠️ Renaming the timeseries column may introduce a breaking change when using overrides.
 
