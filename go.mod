@@ -1,6 +1,6 @@
 module github.com/michelin/snowflake-grafana-datasource
 
-go 1.24
+go 1.24.1
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/grafana/grafana-plugin-sdk-go v0.276.0
