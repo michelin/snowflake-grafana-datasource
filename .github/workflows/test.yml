@@ -1,4 +1,4 @@
-name: CI
+name: Test
 
 on:
   push:
@@ -57,11 +57,10 @@ jobs:
           version: latest
           args: coverage
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v3.1.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
 
       - name: Build backend
         uses: magefile/mage-action@v3

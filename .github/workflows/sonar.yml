@@ -1,0 +1,29 @@
+on:
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+
+jobs:
+  sonar:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read         # to download artifacts
+      pull-requests: write  # for PR decoration
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref:        ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
