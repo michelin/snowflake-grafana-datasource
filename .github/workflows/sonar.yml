@@ -1,3 +1,5 @@
+name: Sonar
+
 on:
   workflow_run:
     workflows: ["Test"]
@@ -21,6 +23,8 @@ jobs:
       - name: Download coverage report
         uses: actions/download-artifact@v4
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
           name: coverage-report
 
       - name: SonarCloud Scan
