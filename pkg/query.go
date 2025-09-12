@@ -5,14 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
-	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
-	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -38,7 +39,18 @@ type queryModel struct {
 func fetchData(ctx context.Context, qc *_data.QueryConfigStruct, config *pluginConfig, authenticationSecret _data.AuthenticationSecret) (result _data.QueryResult, err error) {
 	connectionString := getConnectionString(config, authenticationSecret)
 
-	db, err := sql.Open("snowflake", connectionString)
+	var db *sql.DB
+	if config.EnableSecureSocksProxy {
+		dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:1080", nil, proxy.Direct)
+		if err != nil {
+			log.DefaultLogger.Error("Could not create SOCKS5 dialer", "err", err)
+			return result, err
+		}
+		sf.Dialer = dialer
+		db, err = sql.Open("snowflake", connectionString)
+	} else {
+		db, err = sql.Open("snowflake", connectionString)
+	}
 	if err != nil {
 		log.DefaultLogger.Error("Could not open database", "err", err)
 		return result, err

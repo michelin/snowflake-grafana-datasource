@@ -5,16 +5,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
-	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 
-	sf "github.com/snowflakedb/gosnowflake"
 	"net/url"
+
+	sf "github.com/snowflakedb/gosnowflake"
 )
 
 var (
@@ -82,6 +84,7 @@ type pluginConfig struct {
 	ClientId                 string `json:"clientId"`
 	TokenEndpoint            string `json:"tokenEndpoint"`
 	RedirectUrl              string `json:"redirectUrl"`
+	EnableSecureSocksProxy   bool   `json:"enableSecureSocksProxy"`
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {
