@@ -2,19 +2,20 @@ package oauth
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetToken(t *testing.T) {
 	tcs := []struct {
 		oauth Oauth
 	}{
-		{oauth: Oauth{ClientId: "", ClientSecret: "xxx", TokenEndpoint: "xxx"}},
-		{oauth: Oauth{ClientId: "xx", ClientSecret: "", TokenEndpoint: "xxx"}},
-		{oauth: Oauth{ClientId: "xx", ClientSecret: "xxx", TokenEndpoint: ""}},
+		{oauth: Oauth{ClientId: "", ClientSecret: "xxx", TokenEndpoint: "xxx", Scopes: []string{}}},
+		{oauth: Oauth{ClientId: "xx", ClientSecret: "", TokenEndpoint: "xxx", Scopes: []string{}}},
+		{oauth: Oauth{ClientId: "xx", ClientSecret: "xxx", TokenEndpoint: "", Scopes: []string{}}},
 	}
 	for i, tc := range tcs {
 		t.Run(fmt.Sprintf("testcase %d", i), func(t *testing.T) {
@@ -43,6 +44,7 @@ func TestTokenSourceIsRecreatedWhenRequested(t *testing.T) {
 		ClientId:      "test-client-id",
 		ClientSecret:  "test-client-secret",
 		TokenEndpoint: ts.URL,
+		Scopes:        []string{"read", "write"},
 	}
 
 	// First call to GetToken with recreate = true
@@ -78,6 +80,7 @@ func TestTokenSourceIsNotRecreatedWhenNotRequested(t *testing.T) {
 		ClientId:      "test-client-id",
 		ClientSecret:  "test-client-secret",
 		TokenEndpoint: ts.URL,
+		Scopes:        []string{"read", "write"},
 	}
 
 	// First call to GetToken with recreate = true
@@ -109,6 +112,7 @@ func TestErrorWhenTokenCannotBeRetrieved(t *testing.T) {
 		ClientId:      "invalid-client-id",
 		ClientSecret:  "invalid-client-secret",
 		TokenEndpoint: ts.URL,
+		Scopes:        []string{},
 	}
 
 	// Call GetToken with recreate = true
@@ -120,8 +124,43 @@ func TestErrorWhenTokenCannotBeRetrieved(t *testing.T) {
 }
 
 func TestGetTokenMissingConfiguration(t *testing.T) {
-	oauth := Oauth{}
+	oauth := Oauth{Scopes: []string{}}
 	token, err := GetToken(oauth, true)
 	require.Empty(t, token)
 	require.NoError(t, err)
+}
+
+func TestGetTokenWithScopes(t *testing.T) {
+	var callCount int
+	var receivedScopes string
+	// Mock token endpoint that checks for scopes
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Parse form data to check scopes
+		r.ParseForm()
+		receivedScopes = r.Form.Get("scope")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"access_token": "test_access_token",
+			"token_type": "Bearer",
+			"expires_in": 3600
+		}`))
+		callCount++
+	}))
+	defer ts.Close()
+
+	oauth := Oauth{
+		ClientId:      "test-client-id",
+		ClientSecret:  "test-client-secret",
+		TokenEndpoint: ts.URL,
+		Scopes:        []string{"session:role:ACCOUNTADMIN", "refresh_token"},
+	}
+
+	// Call GetToken with recreate = true
+	token, err := GetToken(oauth, true)
+	require.NotEmpty(t, token)
+	require.NoError(t, err)
+	require.Equal(t, 1, callCount)
+	require.Contains(t, receivedScopes, "session:role:ACCOUNTADMIN")
+	require.Contains(t, receivedScopes, "refresh_token")
 }

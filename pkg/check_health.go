@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
@@ -84,6 +85,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		ClientId:      config.ClientId,
 		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
 		TokenEndpoint: config.TokenEndpoint,
+		Scopes:        config.Scopes,
 	}
 
 	if validationResult := validateAuthFields(password, privateKey, oauth); validationResult != nil {

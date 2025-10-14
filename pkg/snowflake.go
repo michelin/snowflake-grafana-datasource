@@ -5,16 +5,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
-	"strconv"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 
-	sf "github.com/snowflakedb/gosnowflake"
 	"net/url"
+
+	sf "github.com/snowflakedb/gosnowflake"
 )
 
 var (
@@ -46,6 +48,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 		ClientId:      config.ClientId,
 		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
 		TokenEndpoint: config.TokenEndpoint,
+		Scopes:        config.Scopes,
 	}
 
 	token, err := _oauth.GetToken(oauth, false)
@@ -70,18 +73,19 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 }
 
 type pluginConfig struct {
-	Account                  string `json:"account"`
-	Username                 string `json:"username"`
-	Role                     string `json:"role"`
-	Warehouse                string `json:"warehouse"`
-	Database                 string `json:"database"`
-	Schema                   string `json:"schema"`
-	ExtraConfig              string `json:"extraConfig"`
-	MaxChunkDownloadWorkers  string `json:"maxChunkDownloadWorkers"`
-	CustomJSONDecoderEnabled bool   `json:"customJSONDecoderEnabled"`
-	ClientId                 string `json:"clientId"`
-	TokenEndpoint            string `json:"tokenEndpoint"`
-	RedirectUrl              string `json:"redirectUrl"`
+	Account                  string   `json:"account"`
+	Username                 string   `json:"username"`
+	Role                     string   `json:"role"`
+	Warehouse                string   `json:"warehouse"`
+	Database                 string   `json:"database"`
+	Schema                   string   `json:"schema"`
+	ExtraConfig              string   `json:"extraConfig"`
+	MaxChunkDownloadWorkers  string   `json:"maxChunkDownloadWorkers"`
+	CustomJSONDecoderEnabled bool     `json:"customJSONDecoderEnabled"`
+	ClientId                 string   `json:"clientId"`
+	TokenEndpoint            string   `json:"tokenEndpoint"`
+	RedirectUrl              string   `json:"redirectUrl"`
+	Scopes                   []string `json:"scopes"`
 }
 
 func getConfig(settings *backend.DataSourceInstanceSettings) (pluginConfig, error) {

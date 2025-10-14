@@ -237,6 +237,19 @@ export class ConfigEditor extends PureComponent<Props, State> {
     onOptionsChange({ ...options, jsonData });
   };
 
+  onScopesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    const scopesArray = event.target.value
+      .split(',')
+      .map(scope => scope.trim())
+      .filter(scope => scope.length > 0);
+    const jsonData = {
+      ...options.jsonData,
+      scopes: scopesArray,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
   onClientSecretChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     onOptionsChange({
@@ -362,6 +375,16 @@ export class ConfigEditor extends PureComponent<Props, State> {
                     value={jsonData.tokenEndpoint ?? ''}
                     width={INPUT_WIDTH}
                     onChange={this.onTokenEndpointChange}
+                />
+              </InlineField>
+              <InlineField label="Scopes"
+                           tooltip="Comma-separated list of OAuth scopes (e.g., session:role:ACCOUNTADMIN,refresh_token)"
+                           labelWidth={LABEL_WIDTH}>
+                <Input
+                    value={jsonData.scopes ? jsonData.scopes.join(', ') : ''}
+                    width={INPUT_WIDTH}
+                    onChange={this.onScopesChange}
+                    placeholder="session:role:ACCOUNTADMIN,refresh_token"
                 />
               </InlineField>
           </div>
