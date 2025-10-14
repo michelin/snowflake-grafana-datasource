@@ -164,3 +164,64 @@ func TestGetTokenWithScopes(t *testing.T) {
 	require.Contains(t, receivedScopes, "session:role:ACCOUNTADMIN")
 	require.Contains(t, receivedScopes, "refresh_token")
 }
+
+func TestGetTokenWithMultipleScopes(t *testing.T) {
+	var receivedScopes string
+	// Mock token endpoint that checks for scopes
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Parse form data to check scopes
+		r.ParseForm()
+		receivedScopes = r.Form.Get("scope")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+			"access_token": "test_access_token",
+			"token_type": "Bearer",
+			"expires_in": 3600
+		}`))
+	}))
+	defer ts.Close()
+
+	testCases := []struct {
+		name     string
+		scopes   []string
+		expected []string
+	}{
+		{
+			name:     "single scope",
+			scopes:   []string{"session:role:ACCOUNTADMIN"},
+			expected: []string{"session:role:ACCOUNTADMIN"},
+		},
+		{
+			name:     "multiple scopes",
+			scopes:   []string{"session:role:ACCOUNTADMIN", "refresh_token", "openid"},
+			expected: []string{"session:role:ACCOUNTADMIN", "refresh_token", "openid"},
+		},
+		{
+			name:     "empty scopes",
+			scopes:   []string{},
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			oauth := Oauth{
+				ClientId:      "test-client-id",
+				ClientSecret:  "test-client-secret",
+				TokenEndpoint: ts.URL,
+				Scopes:        tc.scopes,
+			}
+
+			token, err := GetToken(oauth, true)
+			require.NotEmpty(t, token)
+			require.NoError(t, err)
+
+			if len(tc.expected) > 0 {
+				for _, expectedScope := range tc.expected {
+					require.Contains(t, receivedScopes, expectedScope)
+				}
+			}
+		})
+	}
+}

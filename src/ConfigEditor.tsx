@@ -240,7 +240,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
   onScopesChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onOptionsChange, options } = this.props;
     const scopesArray = event.target.value
-      .split(',')
+      .split(/,\s*/) // Split by comma and optional whitespace
       .map(scope => scope.trim())
       .filter(scope => scope.length > 0);
     const jsonData = {
