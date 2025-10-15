@@ -46,13 +46,12 @@ export class ConfigEditor extends PureComponent<Props, State> {
     }
   }
 
-  onAuthMethodChange = (value: string) => {
+  onAuthMethodChange = (value = 'password') => {
     const { onOptionsChange, options } = this.props;
-    const authMethod = value ?? 'password';
-    this.setState({ authMethod: authMethod });
+    this.setState({ authMethod: value });
     const jsonData = {
       ...options.jsonData,
-      authMethod,
+      authMethod: value,
     };
 
     onOptionsChange({
@@ -198,13 +197,13 @@ export class ConfigEditor extends PureComponent<Props, State> {
     if (!/^[A-Za-z0-9\-_=]+$/.test(privateKey) && privateKey !== '') {
 
       // Remove the PEM header and footer
-      privateKey = privateKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g, '');
+      privateKey = privateKey.replaceAll(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g, '');
 
       // Remove all newline and space characters
-      privateKey = privateKey.replace(/\n|\r|\s/g, '');
+      privateKey = privateKey.replaceAll(/\n|\r|\s/g, '');
 
       // Replace + with - and / with _
-      privateKey = privateKey.replace(/\+/g, '-').replace(/\//g, '_');
+      privateKey = privateKey.replaceAll(/\+/g, '-').replaceAll(/\//g, '_');
     }
     onOptionsChange({
       ...options,

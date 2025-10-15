@@ -196,15 +196,15 @@ func handleTimeGroupMacro(args []string, configStruct *data.QueryConfigStruct, n
 	if len(args) > 3 {
 		timeExpr = fmt.Sprintf("TO_TIMESTAMP_NTZ(CONVERT_TIMEZONE(%s, %s))", args[3], args[0])
 	}
-	
+
 	duration := interval.Seconds()
 	timeUnit := "SECOND"
 
-	// If the interval can be translated to weeks exactly, then use WEEK as time slice unit as it allows users to configure which day they want the graphs to be based on 
+	// If the interval can be translated to weeks exactly, then use WEEK as time slice unit as it allows users to configure which day they want the graphs to be based on
 	// as opposed to having them always start on Thursdays due to 1970-01-01 being thursday.
-	const WEEK_IN_SECONDS = 7 * 24 * 3600
-	if interval.Seconds() > 1 && int64(interval.Seconds()) % WEEK_IN_SECONDS == 0 {
-		duration = interval.Seconds() / WEEK_IN_SECONDS
+	const weekInSeconds = 7 * 24 * 3600
+	if interval.Seconds() > 1 && int64(interval.Seconds())%weekInSeconds == 0 {
+		duration = interval.Seconds() / weekInSeconds
 		timeUnit = "WEEK"
 	}
 

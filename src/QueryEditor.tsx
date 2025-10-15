@@ -28,7 +28,7 @@ export class QueryEditor extends PureComponent<Props> {
       // The formatter does not handle the $__ syntax correctly,
       // it adds a space after the method name before the bracket.
       // We fix that here.
-      formatted = formatted.replace(/\$__(\w+)\s\(/g, '$__$1(');
+      formatted = formatted.replaceAll(/\$__(\w+)\s\(/g, '$__$1(');
       this.props.onChange({ ...this.props.query, queryText: formatted });
     } catch (e) {
       console.log('Error formatting query', e);
