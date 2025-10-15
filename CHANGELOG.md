@@ -2,8 +2,19 @@
 
 ## 2.2.0 (not released yet)
 
+### ⭐ Added
+- Add OAuth Scope configuration option.
+
 ### 🔨 Changed
 - Upgrade go to version 1.24
+- Upgrade gosnowflake to version v1.17.0.
+- Upgrade grafana-plugin-sdk-go to version v0.280.0.
+- Upgrade js dependencies.
+- Lazy load sql-formatter and enhance webpack configuration for performance.
+
+### ❤️ Contributors
+We'd like to thank all the contributors who worked on this release!
+- [@yavuzse](https://github.com/yavuzse)
 
 ## 2.1.0
 ⚠️ Renaming the timeseries column may introduce a breaking change when using overrides.
