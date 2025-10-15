@@ -46,4 +46,5 @@ export interface SnowflakeSecureOptions {
   password?: string;
   privateKey?: string;
   clientSecret?: string;
+  pat?: string;
 }

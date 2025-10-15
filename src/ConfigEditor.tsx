@@ -22,6 +22,7 @@ const authOptions = [
   { label: 'Password', value: 'password' },
   { label: 'Key Pair', value: 'keyPair' },
   { label: 'OAuth', value: 'oauth' },
+  { label: 'PAT', value: 'pat' },
 ];
 
 const LABEL_WIDTH = 30
@@ -62,12 +63,14 @@ export class ConfigEditor extends PureComponent<Props, State> {
         password: false,
         privateKey: false,
         clientSecret: false,
+        pat: false,
       },
       secureJsonData: {
         ...options.secureJsonData,
         password: '',
         privateKey: '',
         clientSecret: '',
+        pat: '',
       },
     });
   };
@@ -290,6 +293,32 @@ export class ConfigEditor extends PureComponent<Props, State> {
     });
   };
 
+  onPATChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      secureJsonData: {
+        ...options.secureJsonData,
+        pat: event.target.value,
+      },
+    });
+  };
+
+  onResetPAT = () => {
+    const { onOptionsChange, options } = this.props;
+    onOptionsChange({
+      ...options,
+      secureJsonFields: {
+        ...options.secureJsonFields,
+        pat: false,
+      },
+      secureJsonData: {
+        ...options.secureJsonData,
+        pat: '',
+      },
+    });
+  };
+
   render() {
     const { options } = this.props;
     const { jsonData, secureJsonFields } = options;
@@ -403,6 +432,20 @@ export class ConfigEditor extends PureComponent<Props, State> {
                 />
               </InlineField>
           </div>
+        )}
+        {authMethod === 'pat' && (
+            <InlineField label="Personal Access Token"
+                         tooltip="Snowflake Personal Access Token for authentication"
+                         labelWidth={LABEL_WIDTH}>
+                <SecretInput
+                    isConfigured={secureJsonFields?.pat}
+                    value={secureJsonData.pat ?? ''}
+                    placeholder="Enter your PAT"
+                    width={INPUT_WIDTH}
+                    onReset={this.onResetPAT}
+                    onChange={this.onPATChange}
+                />
+            </InlineField>
         )}
         <InlineField label="Role"
                      tooltip="Global role to use for the connection. With Oauth, it's used to limit the access token to a single role that the user can consent to for the session."

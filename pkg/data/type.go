@@ -2,8 +2,9 @@ package data
 
 import (
 	"database/sql"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"time"
+
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
 
 type QueryResult struct {
@@ -58,4 +59,5 @@ type AuthenticationSecret struct {
 	Password   string
 	PrivateKey string
 	Token      string
+	PAT        string
 }

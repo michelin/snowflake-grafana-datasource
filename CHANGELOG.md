@@ -4,6 +4,7 @@
 
 ### ⭐ Added
 - Add OAuth Scope configuration option.
+- Add support for Personal Access Token (PAT) authentication.
 
 ### 🔨 Changed
 - Upgrade go to version 1.24

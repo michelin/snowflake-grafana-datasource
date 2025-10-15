@@ -44,6 +44,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	pat := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["pat"]
 	oauth := _oauth.Oauth{
 		ClientId:      config.ClientId,
 		ClientSecret:  req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["clientSecret"],
@@ -60,6 +61,7 @@ func (td *SnowflakeDatasource) QueryData(ctx context.Context, req *backend.Query
 		Password:   password,
 		PrivateKey: privateKey,
 		Token:      token,
+		PAT:        pat,
 	}
 
 	// loop over queries and execute them individually.
@@ -117,6 +119,10 @@ func getConnectionString(config *pluginConfig, authenticationSecret data.Authent
 	if len(authenticationSecret.PrivateKey) != 0 {
 		params.Add("authenticator", "SNOWFLAKE_JWT")
 		params.Add("privateKey", authenticationSecret.PrivateKey)
+		userPass = url.QueryEscape(config.Username) + "@"
+	} else if len(authenticationSecret.PAT) != 0 {
+		params.Add("authenticator", "programmatic_access_token")
+		params.Add("token", authenticationSecret.PAT)
 		userPass = url.QueryEscape(config.Username) + "@"
 	} else if len(authenticationSecret.Token) != 0 {
 		params.Add("authenticator", "oauth")
