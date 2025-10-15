@@ -27,7 +27,7 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
 
   async metricFindQuery(queryText: string): Promise<MetricFindValue[]> {
     if (!queryText) {
-      return Promise.resolve([]);
+      return [];
     }
 
     return firstValueFrom(this.query({

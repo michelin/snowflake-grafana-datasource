@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	sf "github.com/snowflakedb/gosnowflake"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestGetConfig(t *testing.T) {
@@ -69,6 +70,11 @@ func TestGetConnectionString(t *testing.T) {
 	t.Run("with token", func(t *testing.T) {
 		connectionString := getConnectionString(&config, data.AuthenticationSecret{Password: "", PrivateKey: "", Token: "xxxxxxxx"})
 		require.Equal(t, "account?authenticator=oauth&database=database&role=role&schema=schema&token=xxxxxxxx&warehouse=warehouse&conf=xxx", connectionString)
+	})
+
+	t.Run("with PAT", func(t *testing.T) {
+		connectionString := getConnectionString(&config, data.AuthenticationSecret{Password: "", PrivateKey: "", Token: "", PAT: "my-pat-token"})
+		require.Equal(t, "username@account?authenticator=programmatic_access_token&database=database&role=role&schema=schema&token=my-pat-token&warehouse=warehouse&conf=xxx", connectionString)
 	})
 
 	config = pluginConfig{
