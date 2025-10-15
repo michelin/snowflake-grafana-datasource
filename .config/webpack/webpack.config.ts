@@ -134,10 +134,26 @@ const config = async (env: Env): Promise<Configuration> => {
             },
             compress: {
               drop_console: ['log', 'info'],
+              drop_debugger: true,
+              pure_funcs: ['console.log', 'console.info'],
+            },
+            mangle: {
+              safari10: true,
             },
           },
+          extractComments: false,
         }),
       ],
+      splitChunks: {
+        chunks: 'async',
+        cacheGroups: {
+          vendors: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: -10,
+          },
+        },
+      },
     },
 
     output: {
@@ -153,6 +169,12 @@ const config = async (env: Env): Promise<Configuration> => {
       publicPath: `public/plugins/${pluginJson.id}/`,
       uniqueName: pluginJson.id,
       crossOriginLoading: 'anonymous',
+    },
+
+    performance: {
+      hints: env.production ? 'warning' : false,
+      maxAssetSize: 300000, // 300 KiB
+      maxEntrypointSize: 300000, // 300 KiB
     },
 
     plugins: [

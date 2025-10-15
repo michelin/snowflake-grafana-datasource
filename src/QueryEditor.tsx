@@ -5,7 +5,6 @@ import {Button, CodeEditor, Field, InlineFormLabel, RadioButtonGroup, Select, Ta
 import {QueryEditorProps, SelectableValue} from '@grafana/data';
 import {DataSource} from './datasource';
 import {defaultQuery, SnowflakeOptions, SnowflakeQuery} from './types';
-import {format} from 'sql-formatter'
 
 type Props = QueryEditorProps<DataSource, SnowflakeQuery, SnowflakeOptions>;
 
@@ -17,8 +16,10 @@ export class QueryEditor extends PureComponent<Props> {
     this.props.onRunQuery();
   };
 
-  onFormat = () => {
+  onFormat = async () => {
     try {
+      // Lazy load sql-formatter to reduce initial bundle size
+      const { format } = await import('sql-formatter');
       let formatted = format(this.props.query.queryText ?? "", {
         language: 'snowflake', 
         denseOperators: false, 
