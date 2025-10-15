@@ -19,7 +19,7 @@
   "author": "Manufacture Française des Pneumatiques Michelin",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@grafana/eslint-config": "^8.0.0",
+    "@grafana/eslint-config": "^8.2.0",
     "@grafana/plugin-e2e": "^1.17.1",
     "@grafana/tsconfig": "^2.0.0",
     "@playwright/test": "1.50.1",
@@ -32,8 +32,8 @@
     "@types/jest": "^29.5.0",
     "@types/node": "^20.8.7",
     "@types/testing-library__jest-dom": "5.14.8",
-    "@typescript-eslint/eslint-plugin": "^6.18.0",
-    "@typescript-eslint/parser": "^6.18.0",
+    "@typescript-eslint/eslint-plugin": "^8.3.0",
+    "@typescript-eslint/parser": "^8.3.0",
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.7.3",
     "eslint": "^8.0.0",
@@ -41,7 +41,6 @@
     "eslint-plugin-jsdoc": "^46.8.0",
     "eslint-plugin-react": "^7.33.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-deprecation": "^2.0.0",
     "eslint-webpack-plugin": "^4.0.1",
     "fork-ts-checker-webpack-plugin": "^8.0.0",
     "glob": "^10.2.7",
@@ -70,13 +69,14 @@
   },
   "dependencies": {
     "@emotion/css": "11.10.6",
-    "@grafana/data": "^11.5.3",
-    "@grafana/runtime": "^11.5.3",
-    "@grafana/schema": "^11.5.3",
-    "@grafana/ui": "^11.5.3",
+    "@grafana/data": "^12.2.0",
+    "@grafana/runtime": "^12.2.0",
+    "@grafana/schema": "^12.2.0",
+    "@grafana/ui": "^12.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "sql-formatter": "^15.2.0"
+    "sql-formatter": "^15.2.0",
+    "@grafana/i18n": "^12.2.0"
   },
   "packageManager": "yarn@1.22.17"
 }
