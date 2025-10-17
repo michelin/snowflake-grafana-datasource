@@ -206,7 +206,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
       privateKey = privateKey.replaceAll(/\n|\r|\s/g, '');
 
       // Replace + with - and / with _
-      privateKey = privateKey.replaceAll(/\+/g, '-').replaceAll(/\//g, '_');
+      privateKey = privateKey.replaceAll('+', '-').replaceAll('/', '_');
     }
     onOptionsChange({
       ...options,

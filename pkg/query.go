@@ -5,14 +5,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
-	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
-	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	_data "github.com/michelin/snowflake-grafana-datasource/pkg/data"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/query"
+	"github.com/michelin/snowflake-grafana-datasource/pkg/utils"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -108,8 +109,6 @@ func transformQueryResult(qc _data.QueryConfigStruct, columnTypes []*sql.ColumnT
 		return nil, err
 	}
 
-	column_types, _ := rows.ColumnTypes()
-
 	// convert types from string type to real type
 	for i := 0; i < len(columnTypes); i++ {
 		log.DefaultLogger.Debug("Type", fmt.Sprintf("%T %v ", values[i], values[i]), columnTypes[i].DatabaseTypeName())
@@ -125,7 +124,7 @@ func transformQueryResult(qc _data.QueryConfigStruct, columnTypes []*sql.ColumnT
 		}
 
 		if values[i] != nil {
-			switch column_types[i].ScanType() {
+			switch columnTypes[i].ScanType() {
 			case reflect.TypeOf(boolean):
 				values[i] = values[i].(bool)
 			case reflect.TypeOf(tim):
