@@ -54,16 +54,31 @@ func createHealthError(message string) *backend.CheckHealthResult {
 }
 
 // validateAuthFields validates the authentication fields
-func validateAuthFields(password, privateKey string, oauth _oauth.Oauth) *backend.CheckHealthResult {
-	if password == "" && privateKey == "" && oauth.ClientSecret == "" {
-		return createHealthError("Password or private key or Oauth fields are required.")
+func validateAuthFields(password, privateKey string, pat string, oauth _oauth.Oauth) *backend.CheckHealthResult {
+	if password == "" && privateKey == "" && oauth.ClientSecret == "" && pat == "" {
+		return createHealthError("Password or private key or Oauth or pat fields are required.")
 	}
 
-	if (password != "" && (privateKey != "" || oauth.ClientSecret != "")) || (privateKey != "" && oauth.ClientSecret != "") {
+	// Check that only one authentication method is provided
+	authMethodCount := 0
+	if password != "" {
+		authMethodCount++
+	}
+	if privateKey != "" {
+		authMethodCount++
+	}
+	if oauth.ClientSecret != "" {
+		authMethodCount++
+	}
+	if pat != "" {
+		authMethodCount++
+	}
+
+	if authMethodCount > 1 {
 		return createHealthError("Only one authentication method must be provided.")
 	}
 
-	if password == "" && privateKey == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "") {
+	if password == "" && privateKey == "" && pat == "" && (oauth.ClientSecret == "" || oauth.ClientId == "" || oauth.TokenEndpoint == "") {
 		return createHealthError("All OAuth fields are mandatory.")
 	}
 
@@ -80,6 +95,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 
 	password := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["password"]
 	privateKey := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["privateKey"]
+	pat := req.PluginContext.DataSourceInstanceSettings.DecryptedSecureJSONData["pat"]
 
 	oauth := _oauth.Oauth{
 		ClientId:      config.ClientId,
@@ -88,7 +104,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		Scopes:        config.Scopes,
 	}
 
-	if validationResult := validateAuthFields(password, privateKey, oauth); validationResult != nil {
+	if validationResult := validateAuthFields(password, privateKey, pat, oauth); validationResult != nil {
 		return "", validationResult
 	}
 
@@ -96,7 +112,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		return "", createHealthError("Account not provided")
 	}
 
-	if config.Username == "" && (password != "" || privateKey != "") {
+	if config.Username == "" && (password != "" || privateKey != "" || pat != "") {
 		return "", createHealthError("Username not provided")
 	}
 
@@ -111,7 +127,7 @@ func createAndValidationConnectionString(req *backend.CheckHealthRequest) (strin
 		return "", createHealthError(fmt.Sprintf("Error getting token: %s", err))
 	}
 
-	authenticationSecret := data.AuthenticationSecret{Password: password, PrivateKey: privateKey, Token: token}
+	authenticationSecret := data.AuthenticationSecret{Password: password, PrivateKey: privateKey, Token: token, PAT: pat}
 
 	connectionString := getConnectionString(&config, authenticationSecret)
 	return connectionString, nil

@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckHealthWithValidConnection(t *testing.T) {
@@ -72,7 +73,7 @@ func TestCheckHealthWithMissingPasswordAndPrivateKey(t *testing.T) {
 	result, err := td.CheckHealth(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, backend.HealthStatusError, result.Status)
-	require.Equal(t, "Password or private key or Oauth fields are required.", result.Message)
+	require.Equal(t, "Password or private key or Oauth or pat fields are required.", result.Message)
 }
 
 func TestCheckHealthWithInvalidJSONData(t *testing.T) {
@@ -110,7 +111,7 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 					},
 				},
 			},
-			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Password or private key or Oauth fields are required."},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Password or private key or Oauth or pat fields are required."},
 		},
 		{
 			name: "Bad Json Configuration",
@@ -243,6 +244,66 @@ func TestCreateAndValidationConnectionString(t *testing.T) {
 				},
 			},
 			connectionString: "user:pass@test?database=&role=&schema=&warehouse=&config=conf&validateDefaultParameters=true",
+		},
+		{
+			name: "valid PAT Auth",
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\",\"username\":\"user\"}"),
+						DecryptedSecureJSONData: map[string]string{"pat": "test_pat_token"},
+					},
+				},
+			},
+			connectionString: "user@test?authenticator=programmatic_access_token&database=&role=&schema=&token=test_pat_token&warehouse=&validateDefaultParameters=true",
+		},
+		{
+			name: "valid PAT Auth with ExtraConfig",
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\",\"username\":\"user\",\"extraConfig\":\"config=conf\"}"),
+						DecryptedSecureJSONData: map[string]string{"pat": "test_pat_token"},
+					},
+				},
+			},
+			connectionString: "user@test?authenticator=programmatic_access_token&database=&role=&schema=&token=test_pat_token&warehouse=&config=conf&validateDefaultParameters=true",
+		},
+		{
+			name: "multiple Auth Methods Pass And PAT",
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\"}"),
+						DecryptedSecureJSONData: map[string]string{"password": "pass", "pat": "test_pat"},
+					},
+				},
+			},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Only one authentication method must be provided."},
+		},
+		{
+			name: "multiple Auth Methods Key And PAT",
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\"}"),
+						DecryptedSecureJSONData: map[string]string{"privateKey": "xxxxx", "pat": "test_pat"},
+					},
+				},
+			},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Only one authentication method must be provided."},
+		},
+		{
+			name: "multiple Auth Methods Oauth And PAT",
+			request: &backend.CheckHealthRequest{
+				PluginContext: backend.PluginContext{
+					DataSourceInstanceSettings: &backend.DataSourceInstanceSettings{
+						JSONData:                []byte("{\"account\":\"test\"}"),
+						DecryptedSecureJSONData: map[string]string{"clientSecret": "s", "pat": "test_pat"},
+					},
+				},
+			},
+			result: &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: "Only one authentication method must be provided."},
 		},
 	}
 	for _, tc := range tcs {
