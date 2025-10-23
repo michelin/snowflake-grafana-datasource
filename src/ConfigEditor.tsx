@@ -376,7 +376,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
         )}
         {authMethod === 'keyPair' && (
             <InlineField label="Private key"
-                         tooltip="The private key must be encoded in base 64"
+                         tooltip="The private key in PEM (PKCS#8 format)"
                          labelWidth={LABEL_WIDTH}>
                 <SecretTextArea
                     isConfigured={secureJsonFields?.privateKey}
