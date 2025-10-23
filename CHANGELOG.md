@@ -7,9 +7,9 @@
 - Add support for Personal Access Token (PAT) authentication.
 
 ### 🔨 Changed
-- Upgrade go to version 1.24
+- Upgrade go to version 1.25
 - Upgrade gosnowflake to version v1.17.0.
-- Upgrade grafana-plugin-sdk-go to version v0.280.0.
+- Upgrade grafana-plugin-sdk-go to version v0.281.0.
 - Upgrade js dependencies.
 - Lazy load sql-formatter and enhance webpack configuration for performance.
 

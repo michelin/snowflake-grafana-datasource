@@ -434,8 +434,8 @@ export class ConfigEditor extends PureComponent<Props, State> {
           </div>
         )}
         {authMethod === 'pat' && (
-            <InlineField label="Personal Access Token"
-                         tooltip="Snowflake Personal Access Token for authentication"
+            <InlineField label="Programmatic Access Token"
+                         tooltip="Snowflake Programmatic Access Token for authentication"
                          labelWidth={LABEL_WIDTH}>
                 <SecretInput
                     isConfigured={secureJsonFields?.pat}

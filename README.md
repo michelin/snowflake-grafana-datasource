@@ -64,20 +64,21 @@ Add your authentication and [configuration details](https://docs.snowflake.com/e
 
 Available configuration fields are as follows:
 
-| Name                     | Description                                                                                                                                                                                                    |
-|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Account Name             | Specifies the full name of your account (provided by Snowflake)                                                                                                                                                |
-| Username                 | Specifies the login name of the user for the connection.                                                                                                                                                       |
-| Password                 | Specifies the password for the specified user.                                                                                                                                                                 |
-| Private key              | Specifies the private key.                                                                                                                                                                                     |
-| Client Id                | Specifies the Oauth client ID.                                                                                                                                                                                 |
-| Client Secret            | Specifies the Oauth client Secret.                                                                                                                                                                             |
-| Token Endpoint           | Specifies the Oauth Token endpoint.                                                                                                                                                                            |
-| Role (Optional)          | Specifies the default access control role to use in the Snowflake session initiated by Grafana. With Oauth, it's used to limit the access token to a single role that the user can consent to for the session. |
-| Warehouse (Optional)     | Specifies the virtual warehouse to use once connected.                                                                                                                                                         |
-| Database (Optional)      | Specifies the default database to use once connected.                                                                                                                                                          |
-| Schema (Optional)        | Specifies the default schema to use for the specified database once connected.                                                                                                                                 |
-| Extra Options (Optional) | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string.                 |
+| Name                      | Description                                                                                                                                                                                                    |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Account Name              | Specifies the full name of your account (provided by Snowflake)                                                                                                                                                |
+| Username                  | Specifies the login name of the user for the connection.                                                                                                                                                       |
+| Password                  | Specifies the password for the specified user.                                                                                                                                                                 |
+| Private key               | Specifies the private key.                                                                                                                                                                                     |
+| Programmatic Access Token | Specifies the Programmatic Access Token for token-based authentication.                                                                                                                                        |
+| Client Id                 | Specifies the Oauth client ID.                                                                                                                                                                                 |
+| Client Secret             | Specifies the Oauth client Secret.                                                                                                                                                                             |
+| Token Endpoint            | Specifies the Oauth Token endpoint.                                                                                                                                                                            |
+| Role (Optional)           | Specifies the default access control role to use in the Snowflake session initiated by Grafana. With Oauth, it's used to limit the access token to a single role that the user can consent to for the session. |
+| Warehouse (Optional)      | Specifies the virtual warehouse to use once connected.                                                                                                                                                         |
+| Database (Optional)       | Specifies the default database to use once connected.                                                                                                                                                          |
+| Schema (Optional)         | Specifies the default schema to use for the specified database once connected.                                                                                                                                 |
+| Extra Options (Optional)  | Specifies a series of one or more parameters, in the form of `<param>=<value>`, with each parameter separated by the ampersand character (&), and no spaces anywhere in the connection string.                 |
 
 **External OAuth authentication**
 
