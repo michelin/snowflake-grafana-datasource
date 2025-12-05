@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/grafana/grafana-plugin-sdk-go v0.283.0
+	github.com/grafana/grafana-plugin-sdk-go v0.284.0
 	github.com/snowflakedb/gosnowflake v1.18.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.33.0
@@ -122,7 +122,7 @@ require (
 	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/telemetry v0.0.0-20250908211612-aef8a434d053 // indirect
 	golang.org/x/term v0.36.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
