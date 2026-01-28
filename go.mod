@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/grafana/grafana-plugin-sdk-go v0.286.0
-	github.com/snowflakedb/gosnowflake v1.18.0
+	github.com/snowflakedb/gosnowflake v1.18.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.34.0
 )
