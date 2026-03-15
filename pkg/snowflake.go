@@ -25,14 +25,21 @@ var (
 	_ backend.QueryDataHandler = (*SnowflakeDatasource)(nil)
 )
 
-// retireGracePeriod is the delay before closing a retired connection pool,
+// defaultRetireGracePeriod is the delay before closing a retired connection pool,
 // giving in-flight queries time to complete.
-const retireGracePeriod = 1 * time.Minute
+const defaultRetireGracePeriod = 1 * time.Minute
+
+type retiredPool struct {
+	db    *sql.DB
+	timer *time.Timer
+}
 
 type SnowflakeDatasource struct {
-	mu         sync.Mutex
-	db         *sql.DB
-	connString string
+	mu                sync.Mutex
+	db                *sql.DB
+	connString        string
+	retired           []retiredPool
+	retireGracePeriod time.Duration
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -141,6 +148,13 @@ func getConnectionString(config *pluginConfig, authenticationSecret data.Authent
 	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }
 
+func (td *SnowflakeDatasource) gracePeriod() time.Duration {
+	if td.retireGracePeriod > 0 {
+		return td.retireGracePeriod
+	}
+	return defaultRetireGracePeriod
+}
+
 // getDB returns a cached *sql.DB or creates a new one if the connection string has changed.
 // When the connection string changes (e.g. OAuth token refresh), the old pool is retired
 // gracefully: it stays usable for in-flight queries and is closed after a grace period.
@@ -152,30 +166,30 @@ func (td *SnowflakeDatasource) getDB(connectionString string) (*sql.DB, error) {
 		return td.db, nil
 	}
 
-	// Retire the old pool instead of closing it immediately,
-	// so in-flight queries can finish without "database is closed" errors.
+	// Open the new pool first so that on failure the old pool remains active.
+	newDB, err := sql.Open("snowflake", connectionString)
+	if err != nil {
+		return nil, err
+	}
+	newDB.SetConnMaxLifetime(30 * time.Minute)
+
+	// Only retire the old pool after the new one is ready.
 	if td.db != nil {
 		td.retireDB(td.db)
 	}
 
-	db, err := sql.Open("snowflake", connectionString)
-	if err != nil {
-		return nil, err
-	}
-
-	db.SetConnMaxLifetime(30 * time.Minute)
-
-	td.db = db
+	td.db = newDB
 	td.connString = connectionString
-	return db, nil
+	return newDB, nil
 }
 
-// retireDB closes the given pool after a grace period, allowing in-flight queries to complete.
+// retireDB schedules the given pool to be closed after a grace period,
+// allowing in-flight queries to complete. Must be called with td.mu held.
 func (td *SnowflakeDatasource) retireDB(db *sql.DB) {
-	go func() {
-		time.Sleep(retireGracePeriod)
+	timer := time.AfterFunc(td.gracePeriod(), func() {
 		db.Close()
-	}()
+	})
+	td.retired = append(td.retired, retiredPool{db: db, timer: timer})
 }
 
 func NewDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
@@ -188,6 +202,18 @@ func (td *SnowflakeDatasource) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
 	td.mu.Lock()
 	defer td.mu.Unlock()
+
+	// Stop pending retire timers and close their pools immediately.
+	for _, r := range td.retired {
+		if r.timer.Stop() {
+			// Timer hadn't fired: we must close the pool ourselves.
+			r.db.Close()
+		}
+		// If Stop() returned false, the timer callback already closed
+		// (or is about to close) the pool — no action needed.
+	}
+	td.retired = nil
+
 	if td.db != nil {
 		td.db.Close()
 		td.db = nil
