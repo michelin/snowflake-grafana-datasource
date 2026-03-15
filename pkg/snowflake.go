@@ -40,6 +40,8 @@ type SnowflakeDatasource struct {
 	connString        string
 	retired           []retiredPool
 	retireGracePeriod time.Duration
+	// openDB overrides sql.Open for testing. If nil, sql.Open is used.
+	openDB func(driverName, dsn string) (*sql.DB, error)
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -155,6 +157,13 @@ func (td *SnowflakeDatasource) gracePeriod() time.Duration {
 	return defaultRetireGracePeriod
 }
 
+func (td *SnowflakeDatasource) openDatabase(connectionString string) (*sql.DB, error) {
+	if td.openDB != nil {
+		return td.openDB("snowflake", connectionString)
+	}
+	return sql.Open("snowflake", connectionString)
+}
+
 // getDB returns a cached *sql.DB or creates a new one if the connection string has changed.
 // When the connection string changes (e.g. OAuth token refresh), the old pool is retired
 // gracefully: it stays usable for in-flight queries and is closed after a grace period.
@@ -167,13 +176,28 @@ func (td *SnowflakeDatasource) getDB(connectionString string) (*sql.DB, error) {
 	}
 
 	// Open the new pool first so that on failure the old pool remains active.
-	newDB, err := sql.Open("snowflake", connectionString)
+	newDB, err := td.openDatabase(connectionString)
 	if err != nil {
 		return nil, err
 	}
 	newDB.SetConnMaxLifetime(30 * time.Minute)
 
-	// Only retire the old pool after the new one is ready.
+	// Validate the new pool before retiring the old one.
+	// This avoids swapping a working pool for one that will fail on first use
+	// (e.g., invalid/expired OAuth token).
+	pingCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := newDB.PingContext(pingCtx); err != nil {
+		newDB.Close()
+		if td.db != nil {
+			// Keep the old pool active; the caller can retry later.
+			log.DefaultLogger.Warn("New connection pool validation failed, keeping existing pool", "err", err)
+			return td.db, nil
+		}
+		return nil, fmt.Errorf("connection pool validation failed: %w", err)
+	}
+
+	// Only retire the old pool after the new one is validated.
 	if td.db != nil {
 		td.retireDB(td.db)
 	}

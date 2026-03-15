@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync"
 	"testing"
@@ -122,14 +123,15 @@ func TestGetDBReturnsCachedDB(t *testing.T) {
 	require.NoError(t, err)
 
 	td := &SnowflakeDatasource{db: db, connString: "conn1"}
-	defer td.Dispose()
-
-	mock.ExpectClose()
 
 	// getDB with the same connection string should return the cached db
 	got, err := td.getDB("conn1")
 	require.NoError(t, err)
 	require.Equal(t, db, got)
+
+	mock.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetDBReusesCachedDBOnMultipleCalls(t *testing.T) {
@@ -137,9 +139,6 @@ func TestGetDBReusesCachedDBOnMultipleCalls(t *testing.T) {
 	require.NoError(t, err)
 
 	td := &SnowflakeDatasource{db: db, connString: "conn1"}
-	defer td.Dispose()
-
-	mock.ExpectClose()
 
 	// Multiple calls with same connection string should return the same db
 	db1, err := td.getDB("conn1")
@@ -147,44 +146,87 @@ func TestGetDBReusesCachedDBOnMultipleCalls(t *testing.T) {
 	db2, err := td.getDB("conn1")
 	require.NoError(t, err)
 	require.Equal(t, db1, db2)
+
+	mock.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
 	db1, mock1, err := sqlmock.New()
 	require.NoError(t, err)
 
-	// Use a short grace period so the test doesn't leak goroutines
+	// Create the mock db that will be returned by the injected opener
+	db2, mock2, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+
+	// Expect ping validation on the new pool
+	mock2.ExpectPing()
+
 	td := &SnowflakeDatasource{
 		db:                db1,
 		connString:        "conn1",
 		retireGracePeriod: 50 * time.Millisecond,
+		// Inject opener so getDB uses our mock instead of real sql.Open
+		openDB: func(_, _ string) (*sql.DB, error) {
+			return db2, nil
+		},
 	}
 
-	// Simulate a connection string change by swapping to a new mock db
-	db2, mock2, err := sqlmock.New()
-	require.NoError(t, err)
-	td.db = db2
-	td.connString = "conn2"
-
-	// Retire old pool — it should NOT be closed immediately
+	// Call getDB with a different connection string — this should:
+	// 1. Open a new pool (via injected opener)
+	// 2. Validate it with Ping
+	// 3. Retire the old pool gracefully
 	mock1.ExpectClose()
-	td.mu.Lock()
-	td.retireDB(db1)
-	td.mu.Unlock()
+	got, err := td.getDB("conn2")
+	require.NoError(t, err)
+	require.Equal(t, db2, got, "should return the new pool")
+	require.Len(t, td.retired, 1, "old pool should be retired")
+
+	// The old pool should NOT be closed immediately
 	require.NoError(t, db1.Ping(), "retired pool should still be usable during grace period")
 
 	// Wait for the grace period to expire and verify the old pool was closed
 	time.Sleep(100 * time.Millisecond)
 	require.NoError(t, mock1.ExpectationsWereMet())
 
-	// Verify new db is returned with new connection string
-	got, err := td.getDB("conn2")
-	require.NoError(t, err)
-	require.Equal(t, db2, got)
-
 	mock2.ExpectClose()
 	td.Dispose()
 	require.NoError(t, mock2.ExpectationsWereMet())
+}
+
+func TestGetDBKeepsOldPoolOnPingFailure(t *testing.T) {
+	db1, mock1, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+
+	db2, mock2, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+
+	// The new pool's ping will fail
+	mock2.ExpectPing().WillReturnError(fmt.Errorf("connection refused"))
+	mock2.ExpectClose()
+
+	td := &SnowflakeDatasource{
+		db:                db1,
+		connString:        "conn1",
+		retireGracePeriod: 50 * time.Millisecond,
+		openDB: func(_, _ string) (*sql.DB, error) {
+			return db2, nil
+		},
+	}
+
+	// getDB should fall back to the old pool when ping fails
+	got, err := td.getDB("conn2")
+	require.NoError(t, err)
+	require.Equal(t, db1, got, "should keep the old pool on ping failure")
+	require.Empty(t, td.retired, "old pool should NOT be retired")
+	require.Equal(t, "conn1", td.connString, "connString should not change")
+
+	require.NoError(t, mock2.ExpectationsWereMet())
+
+	mock1.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock1.ExpectationsWereMet())
 }
 
 func TestGetDBNoRetirementWhenConnStringUnchanged(t *testing.T) {
