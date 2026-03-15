@@ -31,7 +31,8 @@
     "@testing-library/react": "14.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.8.7",
-    "@types/testing-library__jest-dom": "5.14.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.3.0",
     "@typescript-eslint/parser": "^8.3.0",
     "copy-webpack-plugin": "^11.0.0",
@@ -70,13 +71,13 @@
   "dependencies": {
     "@emotion/css": "11.10.6",
     "@grafana/data": "^12.2.0",
+    "@grafana/i18n": "^12.2.0",
     "@grafana/runtime": "^12.2.0",
     "@grafana/schema": "^12.2.0",
     "@grafana/ui": "^12.2.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "sql-formatter": "^15.2.0",
-    "@grafana/i18n": "^12.2.0"
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "sql-formatter": "^15.2.0"
   },
   "packageManager": "yarn@1.22.17"
 }
