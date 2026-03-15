@@ -22,7 +22,7 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 		return result, nil
 	}
 
-	db, err := td.getDB(connectionString)
+	db, err := td.getDB(ctx, connectionString)
 	if err != nil {
 		return createHealthError(fmt.Sprintf("Connection issue : %s", err)), nil
 	}

@@ -189,7 +189,7 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
 	connectionString := getConnectionString(&config, authentication)
-	db, err := td.getDB(connectionString)
+	db, err := td.getDB(ctx, connectionString)
 	if err != nil {
 		log.DefaultLogger.Error("Could not open database", "err", err)
 		response.Error = err

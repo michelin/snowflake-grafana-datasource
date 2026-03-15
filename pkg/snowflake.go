@@ -42,6 +42,8 @@ type SnowflakeDatasource struct {
 	retireGracePeriod time.Duration
 	// openDB overrides sql.Open for testing. If nil, sql.Open is used.
 	openDB func(driverName, dsn string) (*sql.DB, error)
+	// onRetireClose is called after a retired pool is closed. For testing only.
+	onRetireClose func()
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -167,15 +169,19 @@ func (td *SnowflakeDatasource) openDatabase(connectionString string) (*sql.DB, e
 // getDB returns a cached *sql.DB or creates a new one if the connection string has changed.
 // When the connection string changes (e.g. OAuth token refresh), the old pool is retired
 // gracefully: it stays usable for in-flight queries and is closed after a grace period.
-func (td *SnowflakeDatasource) getDB(connectionString string) (*sql.DB, error) {
+// The lock is released during open+ping so cached-pool callers are not blocked by network I/O.
+func (td *SnowflakeDatasource) getDB(ctx context.Context, connectionString string) (*sql.DB, error) {
+	// Fast path: return the cached pool without blocking on network I/O.
 	td.mu.Lock()
-	defer td.mu.Unlock()
-
 	if td.db != nil && td.connString == connectionString {
-		return td.db, nil
+		db := td.db
+		td.mu.Unlock()
+		return db, nil
 	}
+	td.mu.Unlock()
 
-	// Open the new pool first so that on failure the old pool remains active.
+	// Slow path: open and validate a new pool without holding the lock,
+	// so concurrent callers hitting the fast path are not blocked.
 	newDB, err := td.openDatabase(connectionString)
 	if err != nil {
 		return nil, err
@@ -185,16 +191,29 @@ func (td *SnowflakeDatasource) getDB(connectionString string) (*sql.DB, error) {
 	// Validate the new pool before retiring the old one.
 	// This avoids swapping a working pool for one that will fail on first use
 	// (e.g., invalid/expired OAuth token).
-	pingCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	if err := newDB.PingContext(pingCtx); err != nil {
 		newDB.Close()
-		if td.db != nil {
-			// Keep the old pool active; the caller can retry later.
+		td.mu.Lock()
+		oldDB := td.db
+		td.mu.Unlock()
+		if oldDB != nil {
 			log.DefaultLogger.Warn("New connection pool validation failed, keeping existing pool", "err", err)
-			return td.db, nil
+			return oldDB, nil
 		}
 		return nil, fmt.Errorf("connection pool validation failed: %w", err)
+	}
+
+	// Re-acquire lock to swap the pool. Another goroutine may have already
+	// swapped while we were opening/pinging — check again.
+	td.mu.Lock()
+	defer td.mu.Unlock()
+
+	if td.db != nil && td.connString == connectionString {
+		// Another goroutine already updated; discard our new pool.
+		newDB.Close()
+		return td.db, nil
 	}
 
 	// Only retire the old pool after the new one is validated.
@@ -215,6 +234,9 @@ func (td *SnowflakeDatasource) retireDB(db *sql.DB) {
 		td.mu.Lock()
 		defer td.mu.Unlock()
 		td.removeRetired(db)
+		if td.onRetireClose != nil {
+			td.onRetireClose()
+		}
 	})
 	td.retired = append(td.retired, retiredPool{db: db, timer: timer})
 }

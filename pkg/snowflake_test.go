@@ -125,7 +125,7 @@ func TestGetDBReturnsCachedDB(t *testing.T) {
 	td := &SnowflakeDatasource{db: db, connString: "conn1"}
 
 	// getDB with the same connection string should return the cached db
-	got, err := td.getDB("conn1")
+	got, err := td.getDB(context.Background(), "conn1")
 	require.NoError(t, err)
 	require.Equal(t, db, got)
 
@@ -141,9 +141,9 @@ func TestGetDBReusesCachedDBOnMultipleCalls(t *testing.T) {
 	td := &SnowflakeDatasource{db: db, connString: "conn1"}
 
 	// Multiple calls with same connection string should return the same db
-	db1, err := td.getDB("conn1")
+	db1, err := td.getDB(context.Background(), "conn1")
 	require.NoError(t, err)
-	db2, err := td.getDB("conn1")
+	db2, err := td.getDB(context.Background(), "conn1")
 	require.NoError(t, err)
 	require.Equal(t, db1, db2)
 
@@ -163,13 +163,19 @@ func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
 	// Expect ping validation on the new pool
 	mock2.ExpectPing()
 
+	// Channel signaled when the retire callback closes the old pool
+	closed := make(chan struct{}, 1)
+
 	td := &SnowflakeDatasource{
 		db:                db1,
 		connString:        "conn1",
-		retireGracePeriod: 50 * time.Millisecond,
+		retireGracePeriod: 10 * time.Millisecond,
 		// Inject opener so getDB uses our mock instead of real sql.Open
 		openDB: func(_, _ string) (*sql.DB, error) {
 			return db2, nil
+		},
+		onRetireClose: func() {
+			closed <- struct{}{}
 		},
 	}
 
@@ -178,16 +184,20 @@ func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
 	// 2. Validate it with Ping
 	// 3. Retire the old pool gracefully
 	mock1.ExpectClose()
-	got, err := td.getDB("conn2")
+	got, err := td.getDB(context.Background(), "conn2")
 	require.NoError(t, err)
 	require.Equal(t, db2, got, "should return the new pool")
-	require.Len(t, td.retired, 1, "old pool should be retired")
 
 	// The old pool should NOT be closed immediately
 	require.NoError(t, db1.Ping(), "retired pool should still be usable during grace period")
 
-	// Wait for the grace period to expire and verify the old pool was closed
-	time.Sleep(100 * time.Millisecond)
+	// Wait deterministically for the retire callback to signal
+	select {
+	case <-closed:
+		// OK — retired pool was closed
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for retired pool to be closed")
+	}
 	require.NoError(t, mock1.ExpectationsWereMet())
 
 	mock2.ExpectClose()
@@ -216,7 +226,7 @@ func TestGetDBKeepsOldPoolOnPingFailure(t *testing.T) {
 	}
 
 	// getDB should fall back to the old pool when ping fails
-	got, err := td.getDB("conn2")
+	got, err := td.getDB(context.Background(), "conn2")
 	require.NoError(t, err)
 	require.Equal(t, db1, got, "should keep the old pool on ping failure")
 	require.Empty(t, td.retired, "old pool should NOT be retired")
@@ -241,7 +251,7 @@ func TestGetDBNoRetirementWhenConnStringUnchanged(t *testing.T) {
 
 	// Calling getDB with the same connection string should reuse the pool
 	// without triggering any retirement.
-	got, err := td.getDB("conn1")
+	got, err := td.getDB(context.Background(), "conn1")
 	require.NoError(t, err)
 	require.Equal(t, db1, got, "same connString should return same pool")
 	require.Empty(t, td.retired, "no retirement when connString unchanged")
@@ -266,7 +276,7 @@ func TestGetDBIsConcurrencySafe(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			got, err := td.getDB("conn1")
+			got, err := td.getDB(context.Background(), "conn1")
 			if err != nil {
 				errs <- err
 				return
