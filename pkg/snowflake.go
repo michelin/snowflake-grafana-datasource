@@ -188,8 +188,22 @@ func (td *SnowflakeDatasource) getDB(connectionString string) (*sql.DB, error) {
 func (td *SnowflakeDatasource) retireDB(db *sql.DB) {
 	timer := time.AfterFunc(td.gracePeriod(), func() {
 		db.Close()
+		td.mu.Lock()
+		defer td.mu.Unlock()
+		td.removeRetired(db)
 	})
 	td.retired = append(td.retired, retiredPool{db: db, timer: timer})
+}
+
+// removeRetired removes the entry for the given db from the retired slice.
+// Must be called with td.mu held.
+func (td *SnowflakeDatasource) removeRetired(db *sql.DB) {
+	for i, r := range td.retired {
+		if r.db == db {
+			td.retired = append(td.retired[:i], td.retired[i+1:]...)
+			return
+		}
+	}
 }
 
 func NewDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {

@@ -117,31 +117,29 @@ func TestDisposesInstanceWithoutError(t *testing.T) {
 	})
 }
 
-func TestGetDBReturnsNewDBOnFirstCall(t *testing.T) {
-	td := &SnowflakeDatasource{}
-	defer td.Dispose()
-
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-
-	// Simulate getDB by setting the db directly for unit test
-	td.db = db
-	td.connString = "conn1"
-
-	// Same connection string should return the cached db
-	got, err := td.getDB("conn1")
-	require.NoError(t, err)
-	require.Equal(t, db, got)
-
-	require.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestGetDBReusesCachedDB(t *testing.T) {
+func TestGetDBReturnsCachedDB(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 
 	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+	defer td.Dispose()
+
+	mock.ExpectClose()
+
+	// getDB with the same connection string should return the cached db
+	got, err := td.getDB("conn1")
+	require.NoError(t, err)
+	require.Equal(t, db, got)
+}
+
+func TestGetDBReusesCachedDBOnMultipleCalls(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+	defer td.Dispose()
+
+	mock.ExpectClose()
 
 	// Multiple calls with same connection string should return the same db
 	db1, err := td.getDB("conn1")
@@ -149,8 +147,6 @@ func TestGetDBReusesCachedDB(t *testing.T) {
 	db2, err := td.getDB("conn1")
 	require.NoError(t, err)
 	require.Equal(t, db1, db2)
-
-	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
@@ -172,7 +168,9 @@ func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
 
 	// Retire old pool — it should NOT be closed immediately
 	mock1.ExpectClose()
+	td.mu.Lock()
 	td.retireDB(db1)
+	td.mu.Unlock()
 	require.NoError(t, db1.Ping(), "retired pool should still be usable during grace period")
 
 	// Wait for the grace period to expire and verify the old pool was closed
@@ -218,17 +216,30 @@ func TestGetDBIsConcurrencySafe(t *testing.T) {
 	td := &SnowflakeDatasource{db: db, connString: "conn1"}
 	defer td.Dispose()
 
+	const goroutines = 50
+	errs := make(chan error, goroutines)
+
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
+	for i := 0; i < goroutines; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			got, err := td.getDB("conn1")
-			require.NoError(t, err)
-			require.NotNil(t, got)
+			if err != nil {
+				errs <- err
+				return
+			}
+			if got == nil {
+				errs <- fmt.Errorf("getDB returned nil")
+			}
 		}()
 	}
 	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		t.Errorf("goroutine error: %v", err)
+	}
 }
 
 func TestDisposeClosesDB(t *testing.T) {
@@ -260,7 +271,9 @@ func TestDisposeStopsRetireTimersAndClosesPools(t *testing.T) {
 
 	// Simulate a retired pool with a pending timer
 	mockRetired.ExpectClose()
+	td.mu.Lock()
 	td.retireDB(dbRetired)
+	td.mu.Unlock()
 
 	// Dispose should stop the timer and close both pools
 	mockActive.ExpectClose()
