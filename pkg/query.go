@@ -36,16 +36,7 @@ type queryModel struct {
 	FillMode    string   `json:"fillMode"`
 }
 
-func fetchData(ctx context.Context, qc *_data.QueryConfigStruct, config *pluginConfig, authenticationSecret _data.AuthenticationSecret) (result _data.QueryResult, err error) {
-	connectionString := getConnectionString(config, authenticationSecret)
-
-	db, err := sql.Open("snowflake", connectionString)
-	if err != nil {
-		log.DefaultLogger.Error("Could not open database", "err", err)
-		return result, err
-	}
-	defer db.Close()
-
+func fetchData(ctx context.Context, db *sql.DB, qc *_data.QueryConfigStruct) (result _data.QueryResult, err error) {
 	log.DefaultLogger.Info("Query", "finalQuery", qc.FinalQuery)
 	rows, err := db.QueryContext(utils.AddQueryTagInfos(ctx, qc), qc.FinalQuery)
 	if err != nil {
@@ -197,8 +188,16 @@ func (td *SnowflakeDatasource) query(ctx context.Context, dataQuery backend.Data
 	// Remove final semi column
 	queryConfig.FinalQuery = strings.TrimSuffix(strings.TrimSpace(queryConfig.FinalQuery), ";")
 
+	connectionString := getConnectionString(&config, authentication)
+	db, err := td.getDB(connectionString)
+	if err != nil {
+		log.DefaultLogger.Error("Could not open database", "err", err)
+		response.Error = err
+		return response
+	}
+
 	frame := data.NewFrame("")
-	dataResponse, err := fetchData(ctx, &queryConfig, &config, authentication)
+	dataResponse, err := fetchData(ctx, db, &queryConfig)
 	if err != nil {
 		response.Error = err
 		return response

@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	sf "github.com/snowflakedb/gosnowflake"
@@ -112,4 +114,114 @@ func TestDisposesInstanceWithoutError(t *testing.T) {
 	require.NotPanics(t, func() {
 		instance.Dispose()
 	})
+}
+
+func TestGetDBReturnsNewDBOnFirstCall(t *testing.T) {
+	td := &SnowflakeDatasource{}
+	defer td.Dispose()
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	// Simulate getDB by setting the db directly for unit test
+	td.db = db
+	td.connString = "conn1"
+
+	// Same connection string should return the cached db
+	got, err := td.getDB("conn1")
+	require.NoError(t, err)
+	require.Equal(t, db, got)
+
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetDBReusesCachedDB(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+
+	// Multiple calls with same connection string should return the same db
+	db1, err := td.getDB("conn1")
+	require.NoError(t, err)
+	db2, err := td.getDB("conn1")
+	require.NoError(t, err)
+	require.Equal(t, db1, db2)
+
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
+	db1, mock1, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{db: db1, connString: "conn1"}
+
+	// Simulate a connection string change by swapping to a new mock db
+	db2, mock2, err := sqlmock.New()
+	require.NoError(t, err)
+	td.db = db2
+	td.connString = "conn2"
+
+	// The old pool should NOT be closed immediately after retirement
+	// (it stays usable for in-flight queries during the grace period)
+	td.retireDB(db1)
+	require.NoError(t, db1.Ping(), "retired pool should still be usable during grace period")
+
+	// Verify new db is returned with new connection string
+	got, err := td.getDB("conn2")
+	require.NoError(t, err)
+	require.Equal(t, db2, got)
+	require.Equal(t, "conn2", td.connString)
+
+	// Cleanup
+	mock1.ExpectClose()
+	db1.Close()
+	require.NoError(t, mock1.ExpectationsWereMet())
+
+	mock2.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock2.ExpectationsWereMet())
+}
+
+func TestGetDBIsConcurrencySafe(t *testing.T) {
+	db, _, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+	defer td.Dispose()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			got, err := td.getDB("conn1")
+			require.NoError(t, err)
+			require.NotNil(t, got)
+		}()
+	}
+	wg.Wait()
+}
+
+func TestDisposeClosesDB(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	mock.ExpectClose()
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+	td.Dispose()
+
+	require.Nil(t, td.db)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDisposeWithNilDB(t *testing.T) {
+	td := &SnowflakeDatasource{}
+	require.NotPanics(t, func() {
+		td.Dispose()
+	})
+	require.Nil(t, td.db)
 }

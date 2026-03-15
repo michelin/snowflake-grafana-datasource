@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	_oauth "github.com/michelin/snowflake-grafana-datasource/pkg/oauth"
@@ -23,8 +25,14 @@ var (
 	_ backend.QueryDataHandler = (*SnowflakeDatasource)(nil)
 )
 
+// retireGracePeriod is the delay before closing a retired connection pool,
+// giving in-flight queries time to complete.
+const retireGracePeriod = 1 * time.Minute
+
 type SnowflakeDatasource struct {
-	db *sql.DB
+	mu         sync.Mutex
+	db         *sql.DB
+	connString string
 }
 
 // QueryData handles multiple queries and returns multiple responses.
@@ -133,12 +141,55 @@ func getConnectionString(config *pluginConfig, authenticationSecret data.Authent
 	return fmt.Sprintf("%s%s?%s&%s", userPass, config.Account, params.Encode(), config.ExtraConfig)
 }
 
+// getDB returns a cached *sql.DB or creates a new one if the connection string has changed.
+// When the connection string changes (e.g. OAuth token refresh), the old pool is retired
+// gracefully: it stays usable for in-flight queries and is closed after a grace period.
+func (td *SnowflakeDatasource) getDB(connectionString string) (*sql.DB, error) {
+	td.mu.Lock()
+	defer td.mu.Unlock()
+
+	if td.db != nil && td.connString == connectionString {
+		return td.db, nil
+	}
+
+	// Retire the old pool instead of closing it immediately,
+	// so in-flight queries can finish without "database is closed" errors.
+	if td.db != nil {
+		td.retireDB(td.db)
+	}
+
+	db, err := sql.Open("snowflake", connectionString)
+	if err != nil {
+		return nil, err
+	}
+
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	td.db = db
+	td.connString = connectionString
+	return db, nil
+}
+
+// retireDB closes the given pool after a grace period, allowing in-flight queries to complete.
+func (td *SnowflakeDatasource) retireDB(db *sql.DB) {
+	go func() {
+		time.Sleep(retireGracePeriod)
+		db.Close()
+	}()
+}
+
 func NewDataSourceInstance(ctx context.Context, setting backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	log.DefaultLogger.Info("Creating instance")
 	datasource := &SnowflakeDatasource{}
 	return datasource, nil
 }
 
-func (s *SnowflakeDatasource) Dispose() {
+func (td *SnowflakeDatasource) Dispose() {
 	log.DefaultLogger.Info("Disposing of instance")
+	td.mu.Lock()
+	defer td.mu.Unlock()
+	if td.db != nil {
+		td.db.Close()
+		td.db = nil
+	}
 }

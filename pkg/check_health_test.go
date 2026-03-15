@@ -29,7 +29,8 @@ func TestCheckHealthWithValidConnection(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	td := &SnowflakeDatasource{db: db}
+	connString := "user:pass@test?database=&role=&schema=&warehouse=&validateDefaultParameters=true"
+	td := &SnowflakeDatasource{db: db, connString: connString}
 	result, err := td.CheckHealth(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, backend.HealthStatusOk, result.Status)
@@ -52,7 +53,8 @@ func TestCheckHealthWithInvalidConnection(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	td := &SnowflakeDatasource{db: db}
+	connString := "user:pass@invalid?database=&role=&schema=&warehouse=&validateDefaultParameters=true"
+	td := &SnowflakeDatasource{db: db, connString: connString}
 	result, err := td.CheckHealth(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, backend.HealthStatusError, result.Status)
