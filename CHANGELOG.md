@@ -4,6 +4,7 @@
 
 ### ⭐ Added
 - Add OAuth Scope configuration option.
+- Implement connection pooling for Snowflake datasource.
 - Add support for Personal Access Token (PAT) authentication.
 
 ### 🔨 Changed
