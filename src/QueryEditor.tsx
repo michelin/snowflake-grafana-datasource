@@ -30,8 +30,8 @@ export class QueryEditor extends PureComponent<Props> {
       // We fix that here.
       formatted = formatted.replaceAll(/\$__(\w+)\s\(/g, '$__$1(');
       this.props.onChange({ ...this.props.query, queryText: formatted });
-    } catch (e) {
-      console.log('Error formatting query', e);
+    } catch (_) {
+      // Formatting failed silently — keep the original query text.
     }
 
   }
