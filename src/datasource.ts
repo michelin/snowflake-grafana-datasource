@@ -42,7 +42,6 @@ export class DataSource extends DataSourceWithBackend<SnowflakeQuery, SnowflakeO
       .pipe(
         switchMap((response) => {
           if (response.errors) {
-            console.log('Error: ' + response.errors?.map(value => value.message ?? '').join(','));
             throw new Error(response.errors?.map(value => value.message ?? '').join(','));
           }
           return response.data;

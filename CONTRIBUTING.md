@@ -36,7 +36,7 @@ Before [creating an issue](https://help.github.com/en/github/managing-your-work-
 
 ### Reporting Security Issues
 
-**Do not** file a public issue for security vulnerabilities. Instead, send your report privately to `TODO: Insert CERT email address`. This will help ensure that any vulnerabilities that are found can be disclosed responsibly to any affected parties.
+**Do not** file a public issue for security vulnerabilities. Instead, send your report privately to `cert@michelin.com`. This will help ensure that any vulnerabilities that are found can be disclosed responsibly to any affected parties.
 We take [responsible disclosure](https://en.wikipedia.org/wiki/Responsible_disclosure) seriously, as they can affect confidence/trust in our project. The person who notified us of the vulnerability will be informed promptly that the problem is being addressed. Wherever possible, and depending on its criticality, the vulnerability should be corrected within the allotted time (generally between 90 and 120 days).
 
 ### Bug Reports and Other Issues

@@ -9,8 +9,8 @@
 
 ### 🔨 Changed
 - Upgrade go to version 1.25
-- Upgrade gosnowflake to version v1.17.0.
-- Upgrade grafana-plugin-sdk-go to version v0.281.0.
+- Upgrade gosnowflake to version v1.19.0.
+- Upgrade grafana-plugin-sdk-go to version v0.290.1.
 - Upgrade js dependencies.
 - Lazy load sql-formatter and enhance webpack configuration for performance.
 
