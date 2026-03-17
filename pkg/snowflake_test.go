@@ -169,7 +169,7 @@ func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
 	td := &SnowflakeDatasource{
 		db:                db1,
 		connString:        "conn1",
-		retireGracePeriod: 10 * time.Millisecond,
+		retireGracePeriod: 100 * time.Millisecond,
 		// Inject opener so getDB uses our mock instead of real sql.Open
 		openDB: func(_, _ string) (*sql.DB, error) {
 			return db2, nil
@@ -188,14 +188,21 @@ func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, db2, got, "should return the new pool")
 
-	// The old pool should NOT be closed immediately
+	// The old pool should NOT be closed yet — the grace period (100ms) hasn't elapsed.
+	// Use a non-blocking check on the closed channel to confirm the timer hasn't fired.
+	select {
+	case <-closed:
+		t.Fatal("retired pool was closed before grace period elapsed")
+	default:
+		// Expected: timer hasn't fired yet
+	}
 	require.NoError(t, db1.Ping(), "retired pool should still be usable during grace period")
 
 	// Wait deterministically for the retire callback to signal
 	select {
 	case <-closed:
-		// OK — retired pool was closed
-	case <-time.After(2 * time.Second):
+		// OK — retired pool was closed after grace period
+	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for retired pool to be closed")
 	}
 	require.NoError(t, mock1.ExpectationsWereMet())

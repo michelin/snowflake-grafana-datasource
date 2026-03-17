@@ -28,8 +28,12 @@ func TestCheckHealthWithValidConnection(t *testing.T) {
 			},
 		},
 	}
+	// Derive connString from the same logic CheckHealth uses, so the test
+	// doesn't break if parameter ordering/formatting changes.
+	connString, validationResult := createAndValidationConnectionString(req)
+	require.Nil(t, validationResult)
+
 	ctx := context.Background()
-	connString := "user:pass@test?database=&role=&schema=&warehouse=&validateDefaultParameters=true"
 	td := &SnowflakeDatasource{db: db, connString: connString}
 	result, err := td.CheckHealth(ctx, req)
 	require.NoError(t, err)
@@ -52,8 +56,10 @@ func TestCheckHealthWithInvalidConnection(t *testing.T) {
 			},
 		},
 	}
+	connString, validationResult := createAndValidationConnectionString(req)
+	require.Nil(t, validationResult)
+
 	ctx := context.Background()
-	connString := "user:pass@invalid?database=&role=&schema=&warehouse=&validateDefaultParameters=true"
 	td := &SnowflakeDatasource{db: db, connString: connString}
 	result, err := td.CheckHealth(ctx, req)
 	require.NoError(t, err)
