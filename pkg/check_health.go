@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -22,17 +21,13 @@ func (td *SnowflakeDatasource) CheckHealth(ctx context.Context, req *backend.Che
 	if result != nil {
 		return result, nil
 	}
-	// Use the existing db field instead of opening a new connection
-	if td.db == nil || td.db.Ping() != nil {
-		var err error
-		td.db, err = sql.Open("snowflake", connectionString)
-		if err != nil {
-			return createHealthError(fmt.Sprintf("Connection issue : %s", err)), nil
-		}
-	}
-	defer td.db.Close()
 
-	row, err := td.db.QueryContext(utils.AddQueryTagInfos(ctx, &data.QueryConfigStruct{}), "SELECT 1")
+	db, err := td.getDB(ctx, connectionString)
+	if err != nil {
+		return createHealthError(fmt.Sprintf("Connection issue : %s", err)), nil
+	}
+
+	row, err := db.QueryContext(utils.AddQueryTagInfos(ctx, &data.QueryConfigStruct{}), "SELECT 1")
 	if err != nil {
 		return createHealthError(fmt.Sprintf("Validation query error : %s", err)), nil
 	}

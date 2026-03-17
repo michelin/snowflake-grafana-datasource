@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/michelin/snowflake-grafana-datasource/pkg/data"
 	sf "github.com/snowflakedb/gosnowflake"
@@ -112,4 +116,238 @@ func TestDisposesInstanceWithoutError(t *testing.T) {
 	require.NotPanics(t, func() {
 		instance.Dispose()
 	})
+}
+
+func TestGetDBReturnsCachedDB(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+
+	// getDB with the same connection string should return the cached db
+	got, err := td.getDB(context.Background(), "conn1")
+	require.NoError(t, err)
+	require.Equal(t, db, got)
+
+	mock.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetDBReusesCachedDBOnMultipleCalls(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+
+	// Multiple calls with same connection string should return the same db
+	db1, err := td.getDB(context.Background(), "conn1")
+	require.NoError(t, err)
+	db2, err := td.getDB(context.Background(), "conn1")
+	require.NoError(t, err)
+	require.Equal(t, db1, db2)
+
+	mock.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetDBRetiresOldPoolGracefully(t *testing.T) {
+	db1, mock1, err := sqlmock.New()
+	require.NoError(t, err)
+
+	// Create the mock db that will be returned by the injected opener
+	db2, mock2, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+
+	// Expect ping validation on the new pool
+	mock2.ExpectPing()
+
+	// Channel signaled when the retire callback closes the old pool
+	closed := make(chan struct{}, 1)
+
+	td := &SnowflakeDatasource{
+		db:                db1,
+		connString:        "conn1",
+		retireGracePeriod: 100 * time.Millisecond,
+		// Inject opener so getDB uses our mock instead of real sql.Open
+		openDB: func(_, _ string) (*sql.DB, error) {
+			return db2, nil
+		},
+		onRetireClose: func() {
+			closed <- struct{}{}
+		},
+	}
+
+	// Call getDB with a different connection string — this should:
+	// 1. Open a new pool (via injected opener)
+	// 2. Validate it with Ping
+	// 3. Retire the old pool gracefully
+	mock1.ExpectClose()
+	got, err := td.getDB(context.Background(), "conn2")
+	require.NoError(t, err)
+	require.Equal(t, db2, got, "should return the new pool")
+
+	// The old pool should NOT be closed yet — the grace period (100ms) hasn't elapsed.
+	// Use a non-blocking check on the closed channel to confirm the timer hasn't fired.
+	select {
+	case <-closed:
+		t.Fatal("retired pool was closed before grace period elapsed")
+	default:
+		// Expected: timer hasn't fired yet
+	}
+	require.NoError(t, db1.Ping(), "retired pool should still be usable during grace period")
+
+	// Wait deterministically for the retire callback to signal
+	select {
+	case <-closed:
+		// OK — retired pool was closed after grace period
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for retired pool to be closed")
+	}
+	require.NoError(t, mock1.ExpectationsWereMet())
+
+	mock2.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock2.ExpectationsWereMet())
+}
+
+func TestGetDBKeepsOldPoolOnPingFailure(t *testing.T) {
+	db1, mock1, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+
+	db2, mock2, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+	require.NoError(t, err)
+
+	// The new pool's ping will fail
+	mock2.ExpectPing().WillReturnError(fmt.Errorf("connection refused"))
+	mock2.ExpectClose()
+
+	td := &SnowflakeDatasource{
+		db:                db1,
+		connString:        "conn1",
+		retireGracePeriod: 50 * time.Millisecond,
+		openDB: func(_, _ string) (*sql.DB, error) {
+			return db2, nil
+		},
+	}
+
+	// getDB should fall back to the old pool when ping fails
+	got, err := td.getDB(context.Background(), "conn2")
+	require.NoError(t, err)
+	require.Equal(t, db1, got, "should keep the old pool on ping failure")
+	require.Empty(t, td.retired, "old pool should NOT be retired")
+	require.Equal(t, "conn1", td.connString, "connString should not change")
+
+	require.NoError(t, mock2.ExpectationsWereMet())
+
+	mock1.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock1.ExpectationsWereMet())
+}
+
+func TestGetDBNoRetirementWhenConnStringUnchanged(t *testing.T) {
+	db1, mock1, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{
+		db:                db1,
+		connString:        "conn1",
+		retireGracePeriod: 50 * time.Millisecond,
+	}
+
+	// Calling getDB with the same connection string should reuse the pool
+	// without triggering any retirement.
+	got, err := td.getDB(context.Background(), "conn1")
+	require.NoError(t, err)
+	require.Equal(t, db1, got, "same connString should return same pool")
+	require.Empty(t, td.retired, "no retirement when connString unchanged")
+
+	mock1.ExpectClose()
+	td.Dispose()
+	require.NoError(t, mock1.ExpectationsWereMet())
+}
+
+func TestGetDBIsConcurrencySafe(t *testing.T) {
+	db, _, err := sqlmock.New()
+	require.NoError(t, err)
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+	defer td.Dispose()
+
+	const goroutines = 50
+	errs := make(chan error, goroutines)
+
+	var wg sync.WaitGroup
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			got, err := td.getDB(context.Background(), "conn1")
+			if err != nil {
+				errs <- err
+				return
+			}
+			if got == nil {
+				errs <- fmt.Errorf("getDB returned nil")
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		t.Errorf("goroutine error: %v", err)
+	}
+}
+
+func TestDisposeClosesDB(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	mock.ExpectClose()
+
+	td := &SnowflakeDatasource{db: db, connString: "conn1"}
+	td.Dispose()
+
+	require.Nil(t, td.db)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDisposeStopsRetireTimersAndClosesPools(t *testing.T) {
+	dbActive, mockActive, err := sqlmock.New()
+	require.NoError(t, err)
+
+	dbRetired, mockRetired, err := sqlmock.New()
+	require.NoError(t, err)
+
+	// Use a long grace period so the timer won't fire before Dispose
+	td := &SnowflakeDatasource{
+		db:                dbActive,
+		connString:        "conn2",
+		retireGracePeriod: 10 * time.Minute,
+	}
+
+	// Simulate a retired pool with a pending timer
+	mockRetired.ExpectClose()
+	td.mu.Lock()
+	td.retireDB(dbRetired)
+	td.mu.Unlock()
+
+	// Dispose should stop the timer and close both pools
+	mockActive.ExpectClose()
+	td.Dispose()
+
+	require.Nil(t, td.db)
+	require.Nil(t, td.retired)
+	require.NoError(t, mockActive.ExpectationsWereMet())
+	require.NoError(t, mockRetired.ExpectationsWereMet())
+}
+
+func TestDisposeWithNilDB(t *testing.T) {
+	td := &SnowflakeDatasource{}
+	require.NotPanics(t, func() {
+		td.Dispose()
+	})
+	require.Nil(t, td.db)
 }
