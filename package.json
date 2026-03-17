@@ -7,7 +7,7 @@
     "dev": "webpack -w -c ./.config/webpack/webpack.config.ts --env development",
     "e2e": "yarn exec cypress install && yarn exec grafana-e2e run",
     "e2e:update": "yarn exec cypress install && yarn exec grafana-e2e run --update-screenshots",
-    "lint": "eslint --cache --ignore-path ./.gitignore --ext .js,.jsx,.ts,.tsx .",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --cache --ext .js,.jsx,.ts,.tsx src/",
     "lint:fix": "yarn run lint --fix && prettier --write --list-different .",
     "server": "docker compose up --build",
     "sign": "npx --yes @grafana/sign-plugin@latest",
