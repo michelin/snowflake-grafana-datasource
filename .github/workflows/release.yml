@@ -5,6 +5,9 @@ on:
     tags:
       - "v*.*.*" # Run workflow on version tags, e.g. v1.0.0.
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -35,20 +38,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-nodemodules-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-nodemodules-
-
       - name: Install dependencies
-        run: yarn install --frozen-lockfile;
-        if: |
-          steps.cache-yarn-cache.outputs.cache-hit != 'true' ||
-          steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
 
       - name: Build and test frontend
         run: yarn build
@@ -68,13 +59,11 @@ jobs:
       - name: Get plugin metadata
         id: metadata
         run: |
-          sudo apt-get install jq
-
           export GRAFANA_PLUGIN_ID=snowflake-grafana-datasource
           export GRAFANA_PLUGIN_VERSION=$(cat dist/plugin.json | jq -r .info.version)
           export GRAFANA_PLUGIN_TYPE=$(cat dist/plugin.json | jq -r .type)
           export GRAFANA_PLUGIN_ARTIFACT=${GRAFANA_PLUGIN_ID}.zip
-          export GRAFANA_PLUGIN_ARTIFACT_CHECKSUM=${GRAFANA_PLUGIN_ARTIFACT}.md5
+          export GRAFANA_PLUGIN_ARTIFACT_CHECKSUM=${GRAFANA_PLUGIN_ARTIFACT}.sha256
 
           echo "plugin_id=${GRAFANA_PLUGIN_ID}" >> $GITHUB_OUTPUT
           echo "plugin_version=${GRAFANA_PLUGIN_VERSION}" >> $GITHUB_OUTPUT
@@ -97,7 +86,7 @@ jobs:
         run: |
           mv dist ${{ steps.metadata.outputs.plugin_id }}
           zip ${{ steps.metadata.outputs.archive }} ${{ steps.metadata.outputs.plugin_id }} -r
-          md5sum ${{ steps.metadata.outputs.archive }} > ${{ steps.metadata.outputs.archive_checksum }}
+          sha256sum ${{ steps.metadata.outputs.archive }} > ${{ steps.metadata.outputs.archive_checksum }}
           echo "checksum=$(cat ./${{ steps.metadata.outputs.archive_checksum }} | cut -d' ' -f1)" >> $GITHUB_OUTPUT
 
       - name: Create release and upload assets
