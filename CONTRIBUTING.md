@@ -17,6 +17,7 @@ _Pull requests, bug reports, and all other forms of contribution are welcomed an
     - [Writing Commit Messages](#writing-commit-messages)
     - [Code Review](#code-review)
     - [Coding Style](#coding-style)
+    - [AI-Assisted Contributions](#ai-assisted-contributions)
     - [Certificate of Origin](#certificate-of-origin)
     - [Credits](#credits)
 
@@ -137,6 +138,33 @@ See also: #456, #789
 Consistency is the most important. Follow the[existing coding style, formatting, and naming conventions of the file you are modifying and of the overall project. When possible, these will be enforced with a linter. Failure to do so will result in a prolonged review process that has to focus on updating the superficial aspects of your code, rather than improving its functionality and performance.
 
 Adhering to this code style ensures consistency and helps maintain code quality throughout the project.
+
+## AI-Assisted contributions
+
+AI tools may be used to assist with contributions, including code, tests, documentation, images, issue reports, commit messages, etc. Their use does not change the contribution process or lower the standards applied during review. The human contributor remains the author and is fully responsible for everything they submit.
+
+If you use an AI tool when preparing a contribution:
+
+- **Understand and review the result.** Review every AI-assisted change and make sure you can explain, maintain, and defend it. Do not submit content that you do not understand.
+- **Verify quality and safety.** Check the result for correctness, security, accessibility, bias, and consistency with the project's conventions. Run the relevant tests and validation tools. AI output must not be treated as evidence that a change is correct.
+- **Respect licenses and provenance.** Ensure that the contribution is compatible with the project's license and does not reproduce third-party material without the necessary rights and attribution. You remain responsible for establishing the provenance of the submitted content.
+- **Protect sensitive information.** Do not provide credentials, personal data, confidential information, embargoed vulnerabilities, or other restricted project material to an AI service unless its use for that information has been explicitly authorized.
+- **Certify the contribution yourself.** An AI tool must not add a `Signed-off-by` line or otherwise certify the Developer Certificate of Origin. Only the human contributor may do so, after reviewing the complete contribution and confirming that they have the right to submit it.
+- **Disclose material assistance.** When an AI tool materially generates or modifies submitted content, add an `Assisted-by` trailer to the commit message. Routine spelling correction, formatting, search, or completion that does not materially shape the contribution does not require a trailer.
+
+Use the following format, naming the tool or agent and the specific model version when known. Specialised analysis tools may be listed after the model; ordinary development tools such as editors, compilers, and Git should not be listed.
+
+```text
+Assisted-by: TOOL_OR_AGENT
+```
+
+For example:
+
+```text
+Assisted-by: claude-code
+```
+
+Maintainers may ask contributors to explain, revise, or replace AI-assisted content that cannot be adequately reviewed or whose provenance is unclear. This AI section policy is adapted from the Linux kernel's [guidance for AI coding assistants](https://docs.kernel.org/process/coding-assistants.html).
 
 ## Certificate of Origin
 
