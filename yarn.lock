@@ -605,10 +605,19 @@
     xss "^1.0.14"
     zod "^4.3.0"
 
-"@grafana/e2e-selectors@12.4.1", "@grafana/e2e-selectors@^12.1.0-240060":
+"@grafana/e2e-selectors@12.4.1":
   version "12.4.1"
   resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-12.4.1.tgz#63b1a6946261093aa6511f7337d775577956ce87"
   integrity sha512-Joyr95YS/8H0IRfBJcyZl/nj4Ku0hBkxJzFXICwOpNv+T/5zdXw4v3n7rhsz3MVjzdwV02lAGazaIaNLX+6CUw==
+  dependencies:
+    semver "^7.7.0"
+    tslib "2.8.1"
+    typescript "5.9.2"
+
+"@grafana/e2e-selectors@13.0.0-23624974663":
+  version "13.0.0-23624974663"
+  resolved "https://registry.yarnpkg.com/@grafana/e2e-selectors/-/e2e-selectors-13.0.0-23624974663.tgz#05e9700741907d406f6caf2bfa2087ea182e67e5"
+  integrity sha512-Bk9EQ63t5MJZL2BPe+WJ8PAUvb1x7/DD2DIQxm+i7ZTVlAYuP5SlnvBkWzUoKgiVerCbrYY6C3OCIUjUAgQoKA==
   dependencies:
     semver "^7.7.0"
     tslib "2.8.1"
@@ -650,14 +659,14 @@
     micro-memoize "^4.1.2"
     react-i18next "^15.0.0"
 
-"@grafana/plugin-e2e@^1.17.1":
-  version "1.19.9"
-  resolved "https://registry.yarnpkg.com/@grafana/plugin-e2e/-/plugin-e2e-1.19.9.tgz#71c52005121ed0637285f1ac10c1fda7d3eaccee"
-  integrity sha512-f8qBQhqQ6PtqzFgTwiIRlVC3Obbad0sgugEfS4B8C0tziHW9akjjcP2fu0+qtPSlUXqQmDsusyAATZKM2MtiIw==
+"@grafana/plugin-e2e@^3.4.10":
+  version "3.4.10"
+  resolved "https://registry.yarnpkg.com/@grafana/plugin-e2e/-/plugin-e2e-3.4.10.tgz#21a33e89313653aec11ca2c61896313185a6bc56"
+  integrity sha512-0UizoFjx0IsFjnyIGeSvZxKSWRK2mZfg7IulXvXr12vxiURyv/Oji0YED3Nd/EfsDCox1wOIfbST3l9xM/1Thw==
   dependencies:
-    "@grafana/e2e-selectors" "^12.1.0-240060"
+    "@grafana/e2e-selectors" "13.0.0-23624974663"
     semver "^7.5.4"
-    uuid "^11.0.2"
+    uuid "^13.0.0"
     yaml "^2.3.4"
 
 "@grafana/runtime@^12.2.0":
@@ -6509,8 +6518,9 @@ react-custom-scrollbars-2@4.5.0:
     prop-types "^15.5.10"
     raf "^3.1.0"
 
-"react-data-grid@github:grafana/react-data-grid#a10c748f40edc538425b458af4e471a8262ec4ed":
+react-data-grid@grafana/react-data-grid#a10c748f40edc538425b458af4e471a8262ec4ed:
   version "7.0.0-beta.56"
+  uid a10c748f40edc538425b458af4e471a8262ec4ed
   resolved "https://codeload.github.com/grafana/react-data-grid/tar.gz/a10c748f40edc538425b458af4e471a8262ec4ed"
   dependencies:
     clsx "^2.0.0"
@@ -7819,10 +7829,15 @@ util-deprecate@^1.0.2:
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
   integrity sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==
 
-uuid@11.1.0, uuid@^11.0.2:
+uuid@11.1.0:
   version "11.1.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-11.1.0.tgz#9549028be1753bb934fc96e2bca09bb4105ae912"
   integrity sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==
+
+uuid@^13.0.0:
+  version "13.0.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-13.0.0.tgz#263dc341b19b4d755eb8fe36b78d95a6b65707e8"
+  integrity sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==
 
 uwrap@0.1.2:
   version "0.1.2"
